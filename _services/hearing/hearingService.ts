@@ -1,4 +1,3 @@
-// _services/hearing/hearingService.ts
 
 import { AddHearingRequest, Hearing } from '../../models/hearing';
 

@@ -1,7 +1,7 @@
 
 import { ClientRegisterRequest, Client } from '../../models/client';
 
-const BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}/api/clients`;
+const BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}/api`;
 
 export const clientService = {
     registerClient: async (clientData: ClientRegisterRequest): Promise<any> => {
@@ -24,7 +24,7 @@ export const clientService = {
 
 getClientsByLawFirm: async (lawFirmCode: string): Promise<Client[]> => {
         const token = localStorage.getItem('token');
-        const response = await fetch(`http://localhost:8080/api/clients/getClientsByLawFirmCode/${lawFirmCode}`, {
+        const response = await fetch(`${BASE_URL}/clients/getClientsByLawFirmCode/${lawFirmCode}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -37,13 +37,12 @@ getClientsByLawFirm: async (lawFirmCode: string): Promise<Client[]> => {
         }
         
         const jsonResponse = await response.json();
-        return jsonResponse.data; // Return the array inside the 'data' field
+        return jsonResponse.data;
     },
-    // Add this inside your existing clientService
 
     getCaseByClientId: async (clientId: number) => {
         const token = localStorage.getItem('token');
-        const response = await fetch(`http://localhost:8080/api/cases/getCaseByClientId/${clientId}`, {
+        const response = await fetch(`${BASE_URL}/cases/getCaseByClientId/${clientId}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -57,6 +56,6 @@ getClientsByLawFirm: async (lawFirmCode: string): Promise<Client[]> => {
         }
         
         const jsonResponse = await response.json();
-        return jsonResponse.data; // Returning the inner 'data' object
+        return jsonResponse.data; 
     }
 };
