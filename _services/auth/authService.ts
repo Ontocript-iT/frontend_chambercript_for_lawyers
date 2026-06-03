@@ -1,4 +1,4 @@
-// services/authService.ts
+
 import { LoginResponse, RegisterAdminRequest } from '../../models/auth';
 
 const BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}/api/auth`;
@@ -18,7 +18,6 @@ export const authService = {
         }
 
         const data: LoginResponse = await response.json();
-        // Best practice: Store token in an HTTP-only cookie or session storage
         if (typeof window !== 'undefined' && data.token) {
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));

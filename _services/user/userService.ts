@@ -22,7 +22,7 @@ export const userService = {
     changePassword: async (userId: number, currentPassword: string, newPassword: string) => {
         const token = localStorage.getItem('token');
         const response = await fetch(`${BASE_URL}/auth/change-password/${userId}`, {
-            method: 'POST', // Assuming PUT or POST based on standard REST for updates
+            method: 'POST', 
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
@@ -31,8 +31,6 @@ export const userService = {
         });
 
         const data = await response.json().catch(() => null);
-
-        // If the status is not in the 200 range, throw the custom backend message
         if (!response.ok || (data && data.status >= 400)) {
             throw new Error(data?.message || 'Failed to change password.');
         }

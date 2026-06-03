@@ -1,20 +1,17 @@
-// services/adminService.ts
+
 import { RegisterEmployeeRequest } from '../../models/auth';
 
-import { CaseDetails } from '../../models/case';
-
-const BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}/api/admin`;
+const BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}/api`;
 
 export const adminService = {
     registerEmployee: async (employeeData: RegisterEmployeeRequest): Promise<any> => {
         // Retrieve the JWT token from storage
         const token = localStorage.getItem('token');
         
-        const response = await fetch(`${BASE_URL}/register-employee`, {
+        const response = await fetch(`${BASE_URL}/admin/register-employee`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                // Attach the Bearer token for protected backend endpoints
                 'Authorization': `Bearer ${token}` 
             },
             body: JSON.stringify(employeeData),
@@ -31,7 +28,7 @@ export const adminService = {
     getEmployeesByAdmin: async (adminId: number): Promise<any> => {
         const token = localStorage.getItem('token');
         
-        const response = await fetch(`${BASE_URL}/get-all-employeesByAdminId/${adminId}`, {
+        const response = await fetch(`${BASE_URL}/admin/get-all-employeesByAdminId/${adminId}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -45,12 +42,12 @@ export const adminService = {
         }
 
         const jsonResponse = await response.json();
-        return jsonResponse.data; // Return just the array of employees
+        return jsonResponse.data;
     },
     deleteEmployee: async (employeeId: number): Promise<any> => {
         const token = localStorage.getItem('token');
         
-        const response = await fetch(`${BASE_URL}/delete-employee/${employeeId}`, {
+        const response = await fetch(`${BASE_URL}/admin/delete-employee/${employeeId}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -58,14 +55,10 @@ export const adminService = {
             }
         });
 
-        // Some backends return 204 No Content for successful deletes, 
-        // so we check if the response is ok before trying to parse JSON.
         if (!response.ok) {
             const errorData = await response.json().catch(() => null);
             throw new Error(errorData?.message || 'Failed to delete employee.');
         }
-
-        // If the backend sends a JSON confirmation message
         if (response.headers.get("content-type")?.includes("application/json")) {
             return response.json();
         }
@@ -76,7 +69,7 @@ export const adminService = {
         const token = localStorage.getItem('token');
         
         // Use the endpoint provided, passing the dynamic lawFirmCode
-        const response = await fetch(`http://localhost:8080/api/audit-logs/user/${lawFirmCode}`, {
+        const response = await fetch(`${BASE_URL}/audit-logs/user/${lawFirmCode}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -95,7 +88,7 @@ export const adminService = {
 
     getEmployeesByAdminId: async (adminId: number) => {
         const token = localStorage.getItem('token');
-        const response = await fetch(`${BASE_URL}/get-all-employeesByAdminId/${adminId}`, {
+        const response = await fetch(`${BASE_URL}/admin/get-all-employeesByAdminId/${adminId}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -111,7 +104,7 @@ export const adminService = {
     const token = localStorage.getItem('token');
     
     // Ensure you are using your BASE_URL environment variable properly
-    const response = await fetch(`http://localhost:8080/api/cases/getFutureCases`, {
+    const response = await fetch(`${BASE_URL}/cases/getFutureCases`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',

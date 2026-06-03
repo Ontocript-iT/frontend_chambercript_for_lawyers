@@ -1,4 +1,4 @@
-// services/caseWorkspaceService.ts
+
 import { CaseRegisterRequest, FolderCreateRequest, DocumentUploadRequest } from '../../models/case';
 
 
@@ -10,7 +10,6 @@ const getHeaders = () => {
 };
 
 export const caseWorkspaceService = {
-    // 1. Register Case
     registerCase: async (caseData: CaseRegisterRequest) => {
         const response = await fetch(`${BASE_URL}/cases/register`, {
             method: 'POST',
@@ -18,10 +17,8 @@ export const caseWorkspaceService = {
             body: JSON.stringify(caseData),
         });
         if (!response.ok) throw new Error('Failed to register case');
-        return response.json(); // Returns { data: { id: ... } }
+        return response.json(); 
     },
-
-    // 2. Create Folder (Main or Sub)
     createFolder: async (folderData: FolderCreateRequest) => {
         const response = await fetch(`${BASE_URL}/folders/create`, {
             method: 'POST',
@@ -29,10 +26,8 @@ export const caseWorkspaceService = {
             body: JSON.stringify(folderData),
         });
         if (!response.ok) throw new Error('Failed to create folder');
-        return response.json(); // Returns { folder: { id: ... } }
+        return response.json(); 
     },
-
-    // 3. Upload Document (Multipart/FormData)
     uploadDocument: async (uploadData: DocumentUploadRequest) => {
         const formData = new FormData();
         formData.append('file', uploadData.file);
@@ -41,13 +36,10 @@ export const caseWorkspaceService = {
         formData.append('uploadedBy', uploadData.uploadedBy.toString());
         formData.append('folderId', uploadData.folderId.toString());
 
-        formData.append('lawFirmCode', "LF000001" );
-
-        // console.log("form--",formData.append)
+        formData.append('lawFirmCode', uploadData.lawFirmCode);
 
         const response = await fetch(`${BASE_URL}/documents/upload`, {
             method: 'POST',
-            // DO NOT set 'Content-Type'. The browser sets it automatically with the boundary for FormData.
             headers: getHeaders(), 
             body: formData,
         });
@@ -65,7 +57,7 @@ export const caseWorkspaceService = {
             const error = await response.json().catch(() => null);
             throw new Error(error?.message || 'Failed to register client');
         }
-        return response.json(); // Expected: { id: 3, message: "...", status: 201 }
+        return response.json(); 
     },
 
     getCaseById: async (caseId: number): Promise<any> => {
