@@ -1,7 +1,7 @@
 
 
 const FOLDERS_URL = `${process.env.NEXT_PUBLIC_API_URL}/api/folders`;
-const DOCS_URL = `${process.env.NEXT_PUBLIC_API_URL}/api/documents`; // Base URL for documents
+const DOCS_URL = `${process.env.NEXT_PUBLIC_API_URL}/api/documents`;
 
 
 
@@ -50,7 +50,6 @@ export const folderService = {
         return data.contents; 
     },
 
-    // NEW: Upload Document Method
     uploadDocument: async (uploadData: DocumentUploadRequest) => {
         const formData = new FormData();
         formData.append('file', uploadData.file);
@@ -64,7 +63,6 @@ export const folderService = {
         const response = await fetch(`${DOCS_URL}/upload`, {
             method: 'POST',
             headers: {
-                // IMPORTANT: Do NOT set 'Content-Type' here. 
                 'Authorization': `Bearer ${token}`
             },
             body: formData,
@@ -91,7 +89,7 @@ export const folderService = {
     },
     renameFolder: async (folderId: number, newName: string) => {
         const response = await fetch(`${FOLDERS_URL}/renameFolder/${folderId}?newName=${encodeURIComponent(newName)}`, {
-            method: 'PUT', // Assuming your backend uses PUT or POST for this update
+            method: 'PUT', 
             headers: getHeaders(),
         });
         
@@ -102,7 +100,6 @@ export const folderService = {
         return response.json();
     },
 
-    // NEW: Delete Folder Method
     deleteFolder: async (folderId: number) => {
         const response = await fetch(`${FOLDERS_URL}/deleteFolder/${folderId}`, {
             method: 'DELETE',
@@ -114,7 +111,6 @@ export const folderService = {
             throw new Error(err?.message || 'Failed to delete folder. It may not be empty.');
         }
         
-        // Some backends return 204 No Content for DELETE, so we handle empty responses safely
         return response.text().then(text => text ? JSON.parse(text) : {});
     }
 };

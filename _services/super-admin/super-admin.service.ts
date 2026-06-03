@@ -10,7 +10,6 @@ const getHeaders = () => ({
 });
 
 export const superAdminService = {
-    // --- Subscriptions ---
     getAllSubscriptions: async (): Promise<SuperAdminSubscription[]> => {
         const response = await fetch(`${SUPER_ADMIN_URL}/subscriptions`, { headers: getHeaders() });
         if (!response.ok) throw new Error('Failed to fetch subscriptions.');
@@ -25,16 +24,14 @@ export const superAdminService = {
 
     activateSubscription: async (id: number) => {
         const response = await fetch(`${SUPER_ADMIN_URL}/activeSubscriptionById/${id}`, { 
-            method: 'POST', // Assuming PUT for activation
+            method: 'POST', 
             headers: getHeaders() 
         });
         if (!response.ok) throw new Error('Failed to activate subscription.');
         return response.json();
     },
 
-    // --- Payments ---
     getPaymentHistory: async (lawFirmCode: string): Promise<PaymentRecord[]> => {
-        // Fallback to history endpoint if your backend provides one for the grid
         const response = await fetch(`${PAYMENTS_URL}/history/${lawFirmCode}`, { headers: getHeaders() });
         if (!response.ok) throw new Error('Failed to fetch payment history.');
         return (await response.json()).data;
