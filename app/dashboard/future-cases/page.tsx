@@ -1,12 +1,10 @@
-// app/dashboard/admin/future-cases/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { adminService } from '../../../../_services/admin/adminService';
-import { Calendar, ArrowLeft, Eye, X } from 'lucide-react';
+import { adminService } from '../../../_services/admin/adminService';
+import { Calendar, ArrowLeft, Eye, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { caseWorkspaceService } from '@/_services/case/caseWorkspaceService';
-
 
 interface FutureCase {
     id: number;
@@ -26,6 +24,12 @@ export default function FutureCasesPage() {
     const [cases, setCases] = useState<FutureCase[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
+    // Pagination states
+    const [currentPage, setCurrentPage] = useState(0); // 0-indexed for Spring Boot
+    const [pageSize, setPageSize] = useState(10);
+    const [totalItems, setTotalItems] = useState(0);
+    const totalPages = Math.ceil(totalItems / pageSize);
+
     // Modal states
     const [selectedCase, setSelectedCase] = useState<any | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -33,10 +37,14 @@ export default function FutureCasesPage() {
 
     useEffect(() => {
         const fetchFutureCases = async () => {
+            setIsLoading(true);
             try {
-                const result = await adminService.getFutureCases(); 
-                if (result && result.data) {
-                    setCases(result.data);
+                // Pass pagination parameters to the service
+                const result = await adminService.getFutureCases(currentPage, pageSize); 
+                if (result) {
+                    setCases(result.data || []);
+                    // CRITICAL FIX: Look for totalItems from the Spring Boot response
+                    setTotalItems(result.totalItems ?? result.caseCount ?? 0);
                 }
             } catch (err) {
                 console.error("Failed to fetch future cases:", err);
@@ -46,13 +54,12 @@ export default function FutureCasesPage() {
         };
 
         fetchFutureCases();
-    }, []);
+    }, [currentPage, pageSize]); // Re-fetch when page or size changes
 
     const handleViewCase = async (caseId: number) => {
         setIsModalOpen(true);
         setIsModalLoading(true);
         try {
-            // Using your exact function structure here
             const caseDetails = await caseWorkspaceService.getCaseById(caseId);
             setSelectedCase(caseDetails);
         } catch (error) {
@@ -65,6 +72,19 @@ export default function FutureCasesPage() {
     const closeModal = () => {
         setIsModalOpen(false);
         setSelectedCase(null);
+    };
+
+    const handlePrevPage = () => {
+        if (currentPage > 0) setCurrentPage(prev => prev - 1);
+    };
+
+    const handleNextPage = () => {
+        if (currentPage < totalPages - 1) setCurrentPage(prev => prev + 1);
+    };
+
+    const handlePageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setPageSize(Number(e.target.value));
+        setCurrentPage(0); // Reset to first page when changing row count
     };
 
     return (
@@ -144,6 +164,52 @@ export default function FutureCasesPage() {
                                 )}
                             </tbody>
                         </table>
+                    </div>
+                )}
+
+                {/* Pagination Controls */}
+                {!isLoading && cases.length > 0 && (
+                    <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm text-slate-600">Rows per page:</span>
+                                <select
+                                    value={pageSize}
+                                    onChange={handlePageSizeChange}
+                                    className="border border-slate-300 rounded-md bg-white text-sm text-slate-700 py-1 pl-2 pr-6 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 cursor-pointer"
+                                >
+                                    <option value={2}>2</option>
+                                    <option value={5}>5</option>
+                                    <option value={10}>10</option>
+                                    <option value={20}>20</option>
+                                    <option value={50}>50</option>
+                                </select>
+                            </div>
+                            <div className="text-sm text-slate-600 hidden sm:block">
+                                Showing <span className="font-medium text-slate-900">{totalItems === 0 ? 0 : currentPage * pageSize + 1}</span> to <span className="font-medium text-slate-900">{Math.min((currentPage + 1) * pageSize, totalItems)}</span> of <span className="font-medium text-slate-900">{totalItems}</span> entries
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={handlePrevPage}
+                                disabled={currentPage === 0}
+                                className="p-1.5 rounded-md bg-white border border-slate-300 text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <ChevronLeft className="w-5 h-5" />
+                            </button>
+                            <span className="text-sm font-medium text-slate-700 px-2">
+                                Page {currentPage + 1} of {Math.max(1, totalPages)}
+                            </span>
+                            <button
+                                onClick={handleNextPage}
+                                disabled={currentPage >= totalPages - 1 || totalPages === 0}
+                                className="p-1.5 rounded-md bg-white border border-slate-300 text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <ChevronRight className="w-5 h-5" />
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>

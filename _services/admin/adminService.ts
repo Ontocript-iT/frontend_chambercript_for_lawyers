@@ -4,8 +4,7 @@ import { RegisterEmployeeRequest } from '../../models/auth';
 const BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}/api`;
 
 export const adminService = {
-    registerEmployee: async (employeeData: RegisterEmployeeRequest): Promise<any> => {
-        // Retrieve the JWT token from storage
+  registerEmployee: async (employeeData: RegisterEmployeeRequest): Promise<any> => {
         const token = localStorage.getItem('token');
         
         const response = await fetch(`${BASE_URL}/admin/register-employee`, {
@@ -19,7 +18,12 @@ export const adminService = {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => null);
-            throw new Error(errorData?.message || 'Failed to register employee.');
+            
+            throw new Error(
+                errorData?.error || 
+                errorData?.message || 
+                'Failed to register employee.'
+            );
         }
 
         return response.json();
@@ -100,24 +104,22 @@ export const adminService = {
         const jsonResponse = await response.json();
         return jsonResponse.data;
     },
- getFutureCases: async (): Promise<any> => {
-    const token = localStorage.getItem('token');
-    
-    // Ensure you are using your BASE_URL environment variable properly
-    const response = await fetch(`${BASE_URL}/cases/getFutureCases`, {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}` // This token is required for the API to send data back!
+getFutureCases: async (page: number = 0, size: number = 10): Promise<any> => {
+        const token = localStorage.getItem('token');
+      
+        const response = await fetch(`${BASE_URL}/cases/getFutureCases?page=${page}&size=${size}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}` 
+            }
+        });
+
+        if (!response.ok) {
+            const err = await response.json().catch(() => null);
+            throw new Error(err?.message || 'Failed to fetch future cases.');
         }
-    });
 
-    if (!response.ok) {
-        const err = await response.json().catch(() => null);
-        throw new Error(err?.message || 'Failed to fetch future cases.');
+        return await response.json(); 
     }
-
-    // Return the full JSON response so we get both .data and .caseCount
-    return await response.json(); 
-}
 };
