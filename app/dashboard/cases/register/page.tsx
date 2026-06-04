@@ -171,12 +171,12 @@ export default function CaseOnboardingWizard() {
                     <h2 className="text-xl font-bold text-slate-900 mb-6 border-b pb-2">1. Register New Client</h2>
                     <form onSubmit={handleClientSubmit} className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div><label className="block text-sm font-medium mb-1">Full Name</label><input required type="text" value={clientForm.name} onChange={e => setClientForm({...clientForm, name: e.target.value})} className="w-full border rounded-lg p-2" /></div>
-                            <div><label className="block text-sm font-medium mb-1">NIC</label><input required type="text" value={clientForm.nic} onChange={e => setClientForm({...clientForm, nic: e.target.value})} className="w-full border rounded-lg p-2" /></div>
-                            {/* <div><label className="block text-sm font-medium mb-1">Email</label><input required type="email" value={clientForm.email} onChange={e => setClientForm({...clientForm, email: e.target.value})} className="w-full border rounded-lg p-2" /></div> */}
-                            <div><label className="block text-sm font-medium mb-1">Phone</label><input required type="text" value={clientForm.phone} onChange={e => setClientForm({...clientForm, phone: e.target.value})} className="w-full border rounded-lg p-2" /></div>
-                            <div className="md:col-span-2"><label className="block text-sm font-medium mb-1">Address</label><input required type="text" value={clientForm.address} onChange={e => setClientForm({...clientForm, address: e.target.value})} className="w-full border rounded-lg p-2" /></div>
-                            <div className="md:col-span-2"><label className="block text-sm font-medium mb-1">Notes</label><textarea rows={2} value={clientForm.notes} onChange={e => setClientForm({...clientForm, notes: e.target.value})} className="w-full border rounded-lg p-2" /></div>
+                            <div><label className="block text-sm text-black font-medium mb-1">Full Name</label><input required type="text" value={clientForm.name} onChange={e => setClientForm({...clientForm, name: e.target.value})} className="w-full border  text-slate-500 rounded-lg p-2" /></div>
+                            <div><label className="block text-sm text-black font-medium mb-1">NIC</label><input required type="text" value={clientForm.nic} onChange={e => setClientForm({...clientForm, nic: e.target.value})} className="w-full text-slate-500 border rounded-lg p-2" /></div>
+                            {/* <div><label className="block text-sm text-black font-medium mb-1">Email</label><input required type="email" value={clientForm.email} onChange={e => setClientForm({...clientForm, email: e.target.value})} className="w-full border rounded-lg p-2" /></div> */}
+                            <div><label className="block text-sm text-black font-medium mb-1">Phone</label><input required type="text" value={clientForm.phone} onChange={e => setClientForm({...clientForm, phone: e.target.value})} className="w-full text-slate-500 border rounded-lg p-2" /></div>
+                            <div className="md:col-span-2"><label className="block text-sm text-black font-medium mb-1">Address</label><input required type="text" value={clientForm.address} onChange={e => setClientForm({...clientForm, address: e.target.value})} className="w-full text-slate-500 border rounded-lg p-2" /></div>
+                            <div className="md:col-span-2"><label className="block text-sm text-black font-medium mb-1">Notes</label><textarea rows={2} value={clientForm.notes} onChange={e => setClientForm({...clientForm, notes: e.target.value})} className="w-full border text-slate-500 rounded-lg p-2" /></div>
                         </div>
                         <button type="submit" disabled={isLoading} className="w-full bg-slate-900 text-white p-3 rounded-lg hover:bg-amber-600 transition">{isLoading ? 'Registering...' : 'Register Client & Continue'}</button>
                     </form>
@@ -196,16 +196,16 @@ export default function CaseOnboardingWizard() {
 
                     <form onSubmit={handleCaseSubmit} className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div><label className="block text-sm font-medium mb-1">Case Number</label><input required type="text" value={caseForm.caseNumber} onChange={e => setCaseForm({...caseForm, caseNumber: e.target.value})} className="w-full border rounded-lg p-2" placeholder="e.g., HC/CIV/2026/045" /></div>
-                            <div><label className="block text-sm font-medium mb-1">Case Title</label><input required type="text" value={caseForm.caseTitle} onChange={e => setCaseForm({...caseForm, caseTitle: e.target.value})} className="w-full border rounded-lg p-2" placeholder="Doe vs. ABC Corp" /></div>
-                            <div><label className="block text-sm font-medium mb-1">Opposite Party</label><input required type="text" value={caseForm.oppositeParty} onChange={e => setCaseForm({...caseForm, oppositeParty: e.target.value})} className="w-full border rounded-lg p-2" /></div>
-                            <div><label className="block text-sm font-medium mb-1">Filing Date</label><input required type="date" value={caseForm.filingDate} onChange={e => setCaseForm({...caseForm, filingDate: e.target.value})} className="w-full border rounded-lg p-2" /></div>
-                            <div><label className="block text-sm font-medium mb-1">Assigned Lawyer</label><input required type="text" value={caseForm.assignedLawyer} onChange={e => setCaseForm({...caseForm, assignedLawyer: e.target.value})} className="w-full border rounded-lg p-2" /></div>
+                            <div><label className="block text-black text-sm font-medium mb-1">Case Number</label><input required type="text" value={caseForm.caseNumber} onChange={e => setCaseForm({...caseForm, caseNumber: e.target.value})} className="w-full border text-slate-500 rounded-lg p-2" placeholder="e.g., HC/CIV/2026/045" /></div>
+                            <div><label className="block text-black text-sm font-medium mb-1">Case Title</label><input required type="text" value={caseForm.caseTitle} onChange={e => setCaseForm({...caseForm, caseTitle: e.target.value})} className="w-full border text-slate-500 rounded-lg p-2" placeholder="Doe vs. ABC Corp" /></div>
+                            <div><label className="block text-black text-sm font-medium mb-1">Opposite Party</label><input required type="text" value={caseForm.oppositeParty} onChange={e => setCaseForm({...caseForm, oppositeParty: e.target.value})} className="w-full border text-slate-500 rounded-lg p-2" /></div>
+                            <div><label className="block text-black text-sm font-medium mb-1">Filing Date</label><input required type="date" value={caseForm.filingDate} onChange={e => setCaseForm({...caseForm, filingDate: e.target.value})} className="w-full border text-slate-500 rounded-lg p-2" /></div>
+                            <div><label className="block text-black text-sm font-medium mb-1">Assigned Lawyer</label><input required type="text" value={caseForm.assignedLawyer} onChange={e => setCaseForm({...caseForm, assignedLawyer: e.target.value})} className="w-full border text-slate-500 rounded-lg p-2" /></div>
                             
-                            <div><label className="block text-sm font-medium mb-1">Case Type</label><select value={caseForm.caseTypeId} onChange={e => setCaseForm({...caseForm, caseTypeId: e.target.value})} className="w-full border rounded-lg p-2"><option value="1">Civil</option><option value="2">Criminal</option></select></div>
-                            <div className="md:col-span-2"><label className="block text-sm font-medium mb-1">Description</label><textarea required rows={3} value={caseForm.description} onChange={e => setCaseForm({...caseForm, description: e.target.value})} className="w-full border rounded-lg p-2" /></div>
+                            <div><label className="block text-black text-sm font-medium mb-1">Case Type</label><select value={caseForm.caseTypeId} onChange={e => setCaseForm({...caseForm, caseTypeId: e.target.value})} className="w-full border text-slate-500 rounded-lg p-2"><option value="1">Civil</option><option value="2">Criminal</option></select></div>
+                            <div className="md:col-span-2"><label className="block text-black text-sm font-medium mb-1">Description</label><textarea required rows={3} value={caseForm.description} onChange={e => setCaseForm({...caseForm, description: e.target.value})} className="w-full border text-slate-500 rounded-lg p-2" /></div>
                         </div>
-                        <button type="submit" disabled={isLoading} className="w-full bg-slate-900 text-white p-3 rounded-lg hover:bg-amber-600 transition">{isLoading ? 'Registering...' : 'Register Case & Continue'}</button>
+                        <button type="submit" disabled={isLoading} className="w-full text-black bg-slate-900 text-white p-3 rounded-lg hover:bg-amber-600 transition">{isLoading ? 'Registering...' : 'Register Case & Continue'}</button>
                     </form>
                 </div>
             )}
@@ -218,9 +218,9 @@ export default function CaseOnboardingWizard() {
                         Case <strong>#{activeCaseId}</strong> created successfully. Let's set up the digital repository.
                     </div>
                     <form onSubmit={handleFolderSubmit} className="space-y-6">
-                        <div><label className="block text-sm font-medium mb-1">Main Folder Name</label><input required type="text" value={folderForm.mainFolderName} onChange={e => setFolderForm({...folderForm, mainFolderName: e.target.value})} className="w-full border rounded-lg p-2" /></div>
-                        <div><label className="block text-sm font-medium mb-1">Sub-Folder Name</label><input required type="text" value={folderForm.subFolderName} onChange={e => setFolderForm({...folderForm, subFolderName: e.target.value})} className="w-full border rounded-lg p-2" /></div>
-                        <button type="submit" disabled={isLoading} className="w-full bg-slate-900 text-white p-3 rounded-lg hover:bg-amber-600 transition">{isLoading ? 'Creating Structure...' : 'Create Folders & Continue'}</button>
+                        <div><label className="block text-black text-sm font-medium mb-1">Main Folder Name</label><input required type="text" value={folderForm.mainFolderName} onChange={e => setFolderForm({...folderForm, mainFolderName: e.target.value})} className="w-full text-slate-500 border rounded-lg p-2" /></div>
+                        <div><label className="block text-black text-sm font-medium mb-1">Sub-Folder Name</label><input required type="text" value={folderForm.subFolderName} onChange={e => setFolderForm({...folderForm, subFolderName: e.target.value})} className="w-full text-slate-500 border rounded-lg p-2" /></div>
+                        <button type="submit" disabled={isLoading} className="w-full text-black bg-slate-900 text-white p-3 rounded-lg hover:bg-amber-600 transition">{isLoading ? 'Creating Structure...' : 'Create Folders & Continue'}</button>
                     </form>
                 </div>
             )}
@@ -231,12 +231,12 @@ export default function CaseOnboardingWizard() {
                     <h2 className="text-xl font-bold text-slate-900 mb-6 border-b pb-2">4. Upload Initial Document <span className="text-sm font-normal text-slate-500">(Optional)</span></h2>
                     <form onSubmit={handleUploadSubmit} className="space-y-6">
                         <div>
-                            <label className="block text-sm font-medium mb-1">Select File</label>
+                            <label className="block text-sm text-black font-medium mb-1">Select File</label>
                             <input type="file" onChange={e => setDocForm({...docForm, file: e.target.files?.[0] || null})} className="w-full border rounded-lg p-2 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100" />
                         </div>
                         <div className="grid grid-cols-2 gap-6">
-                            <div><label className="block text-sm font-medium mb-1">Document Type</label><input type="text" value={docForm.documentType} onChange={e => setDocForm({...docForm, documentType: e.target.value})} className="w-full border rounded-lg p-2" /></div>
-                            <div><label className="block text-sm font-medium mb-1">Version</label><input type="text" value={docForm.version} onChange={e => setDocForm({...docForm, version: e.target.value})} className="w-full border rounded-lg p-2" /></div>
+                            <div><label className="block text-sm text-black font-medium mb-1">Document Type</label><input type="text" value={docForm.documentType} onChange={e => setDocForm({...docForm, documentType: e.target.value})} className="w-full text-slate-500 border rounded-lg p-2" /></div>
+                            <div><label className="block text-sm text-black font-medium mb-1">Version</label><input type="text" value={docForm.version} onChange={e => setDocForm({...docForm, version: e.target.value})} className="w-full text-slate-500 border rounded-lg p-2" /></div>
                         </div>
                         
                         <div className="flex gap-4 pt-4 border-t border-slate-100">

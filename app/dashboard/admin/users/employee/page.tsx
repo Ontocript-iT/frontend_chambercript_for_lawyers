@@ -85,7 +85,7 @@ export default function UserDirectoryPage() {
         return (
             <div className="flex flex-col items-center justify-center h-64 text-center">
                 <ShieldAlert className="w-12 h-12 text-red-500 mb-4" />
-                <h3 className="text-xl font-bold text-slate-800">Access Denied</h3>
+                <h3 className="text-xl font-bold text-slate-800">No employees found for admin</h3>
                 <p className="text-slate-500 mt-2">{error}</p>
             </div>
         );
@@ -106,7 +106,7 @@ export default function UserDirectoryPage() {
                     <input 
                         type="text" 
                         placeholder="Search employees..." 
-                        className="w-full pl-9 pr-4 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                        className="w-full pl-9 pr-4 py-2 text-sm border text-slate-500 border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                     />
                 </div>
             </div>

@@ -1,18 +1,15 @@
-// app/dashboard/clients/view/page.tsx
 'use client';
-
 import { useEffect, useState } from 'react';
 import { clientService } from '../../../../_services/client/clientService';
 import { taskService } from '../../../../_services/task/taskService';
-import { userService } from '../../../../_services/user/userService'; // <-- Import your user service
+import { userService } from '../../../../_services/user/userService'; 
 import { Client } from '../../../../models/client';
 import { User } from '../../../../models/user';
 import { CaseDetails } from '../../../../models/case';
 import { useRouter } from 'next/navigation';
-import { Search, Edit, Trash2, Mail, Phone, MapPin, Calendar, ShieldAlert, Briefcase, X, AlertCircle, FolderOpen, Gavel, ClipboardList, CheckCircle2 } from 'lucide-react';
+import { Search, Edit, Trash2, Mail, Phone, MapPin, Calendar, ShieldAlert, Briefcase, X, AlertCircle, FolderOpen, Gavel, ClipboardList, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { adminService } from '@/_services/admin/adminService';
 
-// New Interface for Employees
 interface Employee {
     id: number;
     name: string;
@@ -24,7 +21,16 @@ export default function ViewClientsPage() {
     const [clients, setClients] = useState<Client[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
-    const [adminId, setAdminId] = useState<number>(0); // Store logged-in Admin/Manager ID
+    const [adminId, setAdminId] = useState<number>(0); 
+
+    // --- Search State ---
+    const [searchQuery, setSearchQuery] = useState('');
+
+    // --- Pagination State ---
+    const [currentPage, setCurrentPage] = useState(0); 
+    const [pageSize, setPageSize] = useState(10);
+    const [totalItems, setTotalItems] = useState(0);
+    const totalPages = Math.ceil(totalItems / pageSize);
 
     // --- Case Modal State ---
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -44,8 +50,10 @@ export default function ViewClientsPage() {
 
     const [userRole, setUserRole] = useState<string>('');
 
-   useEffect(() => {
+    useEffect(() => {
         const fetchClients = async () => {
+            setIsLoading(true);
+            setError('');
             try {
                 const storedUser = localStorage.getItem('user');
                 if (!storedUser) throw new Error("Authentication error: No active session.");
@@ -54,19 +62,59 @@ export default function ViewClientsPage() {
                 if (!user.lawFirmCode) throw new Error("System error: No Law Firm Code associated with your account.");
                 
                 setAdminId(user.id);
-                setUserRole(user.role); // <--- ADD THIS LINE to save the role
+                setUserRole(user.role); 
 
-                const data = await clientService.getClientsByLawFirm(user.lawFirmCode);
-                const sortedClients = data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+                let clientsList = [];
+                let count = 0;
+
+                // Alternate between search logic and pagination logic based on text inputs
+                if (searchQuery.trim() !== '') {
+                    const response = await clientService.searchClientByNin(searchQuery.trim());
+                    
+                    // Flexibly handle if backend sends raw array, matching wrapper schema, or single item object
+                    if (response && response.data) {
+                        clientsList = Array.isArray(response.data) ? response.data : [response.data];
+                        count = response.totalItems ?? clientsList.length;
+                    } else if (Array.isArray(response)) {
+                        clientsList = response;
+                        count = response.length;
+                    } else if (response && typeof response === 'object' && response.id) {
+                        clientsList = [response];
+                        count = 1;
+                    }
+                } else {
+                    // Regular paginated list fetch
+                    const response = await clientService.getClientsByLawFirm(user.lawFirmCode, currentPage, pageSize);
+                    clientsList = response.data || [];
+                    count = response.totalItems ?? 0;
+                }
+
+                const sortedClients = clientsList.sort((a: any, b: any) => 
+                    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                );
+                
                 setClients(sortedClients);
-            }catch (err: any) {
-                setError(err.message);
+                totalItems !== count && setTotalItems(count);
+            } catch (err: any) {
+                // If search yields no result, clear out items rather than crashing table container
+                if (searchQuery.trim() !== '') {
+                    setClients([]);
+                    setTotalItems(0);
+                } else {
+                    setError(err.message);
+                }
             } finally {
                 setIsLoading(false);
             }
         };
-        fetchClients();
-    }, []);
+
+        // 400ms typing debounce to avoid hammering database resources
+        const delayDebounceFn = setTimeout(() => {
+            fetchClients();
+        }, searchQuery ? 400 : 0);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [currentPage, pageSize, searchQuery]); 
 
     // --- Handlers ---
     const handleQuickViewFolders = async (clientId: number) => {
@@ -121,12 +169,10 @@ export default function ViewClientsPage() {
         setTaskMsg({ type: '', text: '' });
         
         try {
-            // 1. Fetch case ID quietly to link the task automatically
             const caseData = await clientService.getCaseByClientId(clientId);
             const activeCaseId = caseData?.id || '';
             setTaskForm(prev => ({ ...prev, caseId: activeCaseId.toString() }));
 
-            // 2. Fetch employees for dropdown using the adminId
             if (adminId) {
                 const empData = await adminService.getEmployeesByAdminId(adminId);
                 setEmployees(empData);
@@ -172,7 +218,21 @@ export default function ViewClientsPage() {
         return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(isoString));
     };
 
-    if (isLoading) return <div className="flex justify-center py-16"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600"></div></div>;
+    // --- Pagination Handlers ---
+    const handlePrevPage = () => {
+        if (currentPage > 0) setCurrentPage(prev => prev - 1);
+    };
+
+    const handleNextPage = () => {
+        if (currentPage < totalPages - 1) setCurrentPage(prev => prev + 1);
+    };
+
+    const handlePageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setPageSize(Number(e.target.value));
+        setCurrentPage(0); 
+    };
+
+    if (isLoading && clients.length === 0) return <div className="flex justify-center py-16"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600"></div></div>;
     if (error) return <div className="flex flex-col items-center justify-center py-16 text-center"><ShieldAlert className="w-12 h-12 text-red-500 mb-4" /><h3 className="text-xl font-bold">Cannot Load Clients</h3><p>{error}</p></div>;
 
     return (
@@ -181,13 +241,27 @@ export default function ViewClientsPage() {
             <div className="p-6 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50 rounded-t-xl">
                 <div className="relative w-full sm:w-80">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input type="text" placeholder="Search by name, NIC, or email..." className="w-full pl-9 pr-4 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none" />
+                    <input 
+                        type="text" 
+                        value={searchQuery}
+                        onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                            setCurrentPage(0); // Safely bounce cursor context back to initial page view context
+                        }}
+                        placeholder="Search by client NIC number..." 
+                        className="w-full pl-9 pr-4 py-2 text-sm border border-slate-300 text-slate-500 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none" 
+                    />
+                    {isLoading && searchQuery && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-amber-600"></div>
+                    )}
                 </div>
-                <span className="text-sm font-medium text-slate-500 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">Total Clients: {clients.length}</span>
+                <span className="text-sm font-medium text-slate-500 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
+                    {searchQuery ? 'Matches Found: ' : 'Total Clients: '}{totalItems}
+                </span>
             </div>
 
             {/* Table Area */}
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto bg-white rounded-b-xl shadow-sm border border-slate-200 border-t-0">
                 <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="bg-white border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider font-semibold">
@@ -199,7 +273,7 @@ export default function ViewClientsPage() {
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                         {clients.length === 0 ? (
-                            <tr><td colSpan={4} className="py-12 text-center text-slate-500">No clients found.</td></tr>
+                            <tr><td colSpan={4} className="py-12 text-center text-slate-500">No clients found matching that lookup metric.</td></tr>
                         ) : (
                             clients.map((client) => (
                                 <tr key={client.id} className="hover:bg-slate-50 transition-colors group">
@@ -208,41 +282,86 @@ export default function ViewClientsPage() {
                                         <div className="text-xs text-slate-500 font-mono mt-0.5">NIC: {client.nic}</div>
                                     </td>
                                     <td className="py-4 px-6 space-y-1.5">
-                                        <div className="flex items-center text-sm text-slate-600"><Mail className="w-3.5 h-3.5 text-slate-400 mr-2 flex-shrink-0" /> <span className="truncate max-w-[180px]">{client.email}</span></div>
+                                        <div className="flex items-center text-sm text-slate-600"><Mail className="w-3.5 h-3.5 text-slate-400 mr-2 flex-shrink-0" /> <span className="truncate max-w-[180px]">{client.email || 'N/A'}</span></div>
                                         <div className="flex items-center text-sm text-slate-600"><Phone className="w-3.5 h-3.5 text-slate-400 mr-2 flex-shrink-0" /> {client.phone}</div>
                                     </td>
                                     <td className="py-4 px-6 space-y-1.5">
                                         <div className="flex items-center text-sm text-slate-600"><Calendar className="w-3.5 h-3.5 text-slate-400 mr-2 flex-shrink-0" /> {formatDate(client.createdAt)}</div>
                                         <div className="flex items-start text-sm text-slate-500"><MapPin className="w-3.5 h-3.5 text-slate-400 mr-2 flex-shrink-0 mt-0.5" /> <span className="truncate max-w-[180px] text-xs">{client.address}</span></div>
                                     </td>
-                                  <td className="py-4 px-6 text-right space-x-2 flex justify-end">
+                                    <td className="py-4 px-6 text-right space-x-2 flex justify-end">
         
-        {/* 1. Delegate Task Button (ONLY SHOW FOR ADMIN) */}
-        {userRole === 'ADMIN' && (
-            <button 
-                onClick={() => openAssignTaskModal(client.id)} 
-                title="Delegate Task" 
-                className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-            >
-                <ClipboardList className="w-4 h-4" />
-            </button>
-        )}
-        
-        {/* 2. Folders Button */}
-        <button onClick={() => handleQuickViewFolders(client.id)} title="View Folders" className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all opacity-0 group-hover:opacity-100">
-            <FolderOpen className="w-4 h-4" />
-        </button>
-        
-        {/* 3. Case Brief Button */}
-        <button onClick={() => handleViewCase(client.id, client.name)} title="View Case Brief" className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all opacity-0 group-hover:opacity-100">
-            <Briefcase className="w-4 h-4" />
-        </button>
-    </td>
+                                        {/* 1. Delegate Task Button (ONLY SHOW FOR ADMIN) */}
+                                        {userRole === 'ADMIN' && (
+                                            <button 
+                                                onClick={() => openAssignTaskModal(client.id)} 
+                                                title="Delegate Task" 
+                                                className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                            >
+                                                <ClipboardList className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                        
+                                        {/* 2. Folders Button */}
+                                        <button onClick={() => handleQuickViewFolders(client.id)} title="View Folders" className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all opacity-0 group-hover:opacity-100">
+                                            <FolderOpen className="w-4 h-4" />
+                                        </button>
+                                        
+                                        {/* 3. Case Brief Button */}
+                                        <button onClick={() => handleViewCase(client.id, client.name)} title="View Case Brief" className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all opacity-0 group-hover:opacity-100">
+                                            <Briefcase className="w-4 h-4" />
+                                        </button>
+                                    </td>
                                 </tr>
                             ))
                         )}
                     </tbody>
                 </table>
+                
+                {/* Pagination Controls */}
+                {clients.length > 0 && (
+                    <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-b-xl">
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm text-slate-600">Rows per page:</span>
+                                <select
+                                    value={pageSize}
+                                    onChange={handlePageSizeChange}
+                                    disabled={!!searchQuery}
+                                    className="border border-slate-300 rounded-md bg-white text-sm text-slate-700 py-1 pl-2 pr-6 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <option value={2}>2</option>
+                                    <option value={10}>10</option>
+                                    <option value={20}>20</option>
+                                    <option value={50}>50</option>
+                                </select>
+                            </div>
+                            <div className="text-sm text-slate-600 hidden sm:block">
+                                Showing <span className="font-medium text-slate-900">{totalItems === 0 ? 0 : currentPage * pageSize + 1}</span> to <span className="font-medium text-slate-900">{Math.min((currentPage + 1) * pageSize, totalItems)}</span> of <span className="font-medium text-slate-900">{totalItems}</span> entries
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={handlePrevPage}
+                                disabled={currentPage === 0 || !!searchQuery}
+                                className="p-1.5 rounded-md bg-white border border-slate-300 text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <ChevronLeft className="w-5 h-5" />
+                            </button>
+                            <span className="text-sm font-medium text-slate-700 px-2">
+                                Page {currentPage + 1} of {Math.max(1, totalPages)}
+                            </span>
+                            <button
+                                onClick={handleNextPage}
+                                disabled={currentPage >= totalPages - 1 || totalPages === 0 || !!searchQuery}
+                                className="p-1.5 rounded-md bg-white border border-slate-300 text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <ChevronRight className="w-5 h-5" />
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* --- Assign Task Modal Popup --- */}
@@ -263,14 +382,14 @@ export default function ViewClientsPage() {
                             )}
 
                             <div>
-                                <label className="block text-sm font-medium mb-1">Task Title</label>
-                                <input required type="text" value={taskForm.title} onChange={e => setTaskForm({...taskForm, title: e.target.value})} className="w-full border p-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., Draft legal brief" />
+                                <label className="block text-sm text-black font-medium mb-1">Task Title</label>
+                                <input required type="text" value={taskForm.title} onChange={e => setTaskForm({...taskForm, title: e.target.value})} className="w-full border p-2 rounded-lg outline-none focus:ring-2 text-slate-500 focus:ring-blue-500" placeholder="e.g., Draft legal brief" />
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium mb-1">Assign To</label>
-                                    <select required value={taskForm.assignedToId} onChange={e => setTaskForm({...taskForm, assignedToId: e.target.value})} className="w-full border p-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                                    <label className="block text-sm text-black font-medium mb-1">Assign To</label>
+                                    <select required value={taskForm.assignedToId} onChange={e => setTaskForm({...taskForm, assignedToId: e.target.value})} className="w-full border p-2 rounded-lg outline-none  text-slate-500 focus:ring-2 focus:ring-blue-500 bg-white">
                                         <option value="" disabled>Select Employee...</option>
                                         {employees.map((emp: any) => (
                                             <option key={emp.userId} value={emp.userId}>{emp.name} ({emp.role})</option>
@@ -278,14 +397,14 @@ export default function ViewClientsPage() {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium mb-1">Due Date</label>
-                                    <input required type="date" value={taskForm.dueDate} onChange={e => setTaskForm({...taskForm, dueDate: e.target.value})} className="w-full border p-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" />
+                                    <label className="block text-sm text-black font-medium mb-1">Due Date</label>
+                                    <input required type="date" value={taskForm.dueDate} onChange={e => setTaskForm({...taskForm, dueDate: e.target.value})} className="w-full border p-2 rounded-lg text-slate-500 outline-none focus:ring-2 focus:ring-blue-500" />
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium mb-1">Task Description</label>
-                                <textarea required rows={3} value={taskForm.description} onChange={e => setTaskForm({...taskForm, description: e.target.value})} className="w-full border p-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" placeholder="Instructions..." />
+                                <label className="block text-sm font-medium text-black mb-1">Task Description</label>
+                                <textarea required rows={3} value={taskForm.description} onChange={e => setTaskForm({...taskForm, description: e.target.value})} className="w-full border p-2 rounded-lg outline-none focus:ring-2 text-slate-500 focus:ring-blue-500" placeholder="Instructions..." />
                             </div>
 
                             <div className="pt-4 flex justify-end gap-3">
@@ -299,9 +418,7 @@ export default function ViewClientsPage() {
                 </div>
             )}
 
-            {/* --- Case Details Modal Popup (Remains Unchanged) --- */}
             {isModalOpen && (
-                // ... exactly the same case modal code as before ...
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                         <div className="flex justify-between items-center p-6 border-b border-slate-200 bg-slate-50">
@@ -323,10 +440,10 @@ export default function ViewClientsPage() {
                                         <span className="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-bold uppercase tracking-wider rounded-full">{selectedCase.status.replace('_', ' ')}</span>
                                     </div>
                                     <div className="grid grid-cols-2 gap-y-4 gap-x-6 bg-slate-50 p-4 rounded-lg border border-slate-100">
-                                        <div><label className="text-xs font-semibold text-slate-500 uppercase">Case Type</label><p className="text-sm font-medium mt-0.5">{selectedCase.caseType?.typeName || 'N/A'}</p></div>
-                                        <div><label className="text-xs font-semibold text-slate-500 uppercase">Filing Date</label><p className="text-sm font-medium mt-0.5">{selectedCase.filingDate}</p></div>
-                                        <div><label className="text-xs font-semibold text-slate-500 uppercase">Assigned Court</label><p className="text-sm font-medium mt-0.5">{selectedCase.court?.courtName || 'N/A'}</p></div>
-                                        <div><label className="text-xs font-semibold text-slate-500 uppercase">Assigned Lawyer</label><p className="text-sm font-medium mt-0.5">{selectedCase.assignedLawyer}</p></div>
+                                        <div><label className="text-xs font-semibold text-slate-500 uppercase">Case Type</label><p className="text-sm font-medium text-slate-700 text-slate-700 mt-0.5">{selectedCase.caseType?.typeName || 'N/A'}</p></div>
+                                        <div><label className="text-xs font-semibold text-slate-500 uppercase">Filing Date</label><p className="text-sm font-medium text-slate-700 mt-0.5">{selectedCase.filingDate}</p></div>
+                                        <div><label className="text-xs font-semibold text-slate-500 uppercase">Assigned Court</label><p className="text-sm font-medium text-slate-700 mt-0.5">{selectedCase.court?.courtName || 'N/A'}</p></div>
+                                        <div><label className="text-xs font-semibold text-slate-500 uppercase">Assigned Lawyer</label><p className="text-sm font-medium text-slate-700 mt-0.5">{selectedCase.assignedLawyer}</p></div>
                                     </div>
                                     <div>
                                         <label className="text-xs font-semibold text-slate-500 uppercase">Description / Overview</label>

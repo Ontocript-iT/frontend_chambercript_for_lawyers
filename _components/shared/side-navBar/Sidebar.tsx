@@ -22,20 +22,19 @@ import {
     Shield
 } from 'lucide-react';
 
-// Restructured for Accordion/Dropdown logic
 const NAV_GROUPS = [
     {
         label: 'Dashboards',
         items: [
             { name: 'Admin Overview', href: '/dashboard/admin', roles: ['ADMIN'], icon: LayoutDashboard },
-            { name: 'Junior Lawyer Overview', href: '/dashboard/manager', roles: ['JUNIOR_LAWYER'], icon: LayoutDashboard },
+            { name: 'Junior Lawyer Overview', href: '/dashboard/junior_lawyer', roles: ['JUNIOR_LAWYER'], icon: LayoutDashboard },
             { name: 'Clerk Overview', href: '/dashboard/clerk', roles: ['CLERK'], icon: LayoutDashboard },
         ]
     },
     {
         label: 'Workspace',
         items: [
-            { name: 'Client Management', href: '/dashboard/clients/view', roles: ['ADMIN', 'MANAGER', 'CLERK'], icon: Users },            
+            { name: 'Client Management', href: '/dashboard/clients/view', roles: ['ADMIN', 'JUNIOR_LAWYER', 'CLERK'], icon: Users },            
             { name: 'Case Register', href: '/dashboard/cases/register', roles: ['ADMIN', 'JUNIOR_LAWYER', 'CLERK'], icon: Briefcase },
             { name: 'Task Center', href: '/dashboard/tasks', roles: ['ADMIN', 'MANAGER', 'CLERK', 'JUNIOR_LAWYER'], icon: CheckSquare },
             { name: 'Reports', href: '/dashboard/reports', roles: ['ADMIN', 'JUNIOR_LAWYER'], icon: FileText },
@@ -54,7 +53,7 @@ const NAV_GROUPS = [
                 ]
             },
             { name: 'Subscription', href: '/dashboard/admin/subscription', roles: ['ADMIN'], icon: CreditCard },
-            { name: 'Settings', href: '/settings/profile', roles: ['ADMIN', 'MANAGER', 'CLERK'], icon: Settings },
+            { name: 'Settings', href: '/settings/profile', roles: ['ADMIN', 'JUNIOR_LAWYER', 'CLERK'], icon: Settings },
         ]
     },
     {
@@ -72,6 +71,13 @@ const NAV_GROUPS = [
                 roles: ['SUPER_ADMIN'],
                 icon: Users 
             },
+             { 
+                name: 'Register Firm', 
+                href: '/dashboard/super-admin/register', 
+                roles: ['SUPER_ADMIN'],
+                icon: Users 
+            },
+              
         ]
     },
 ];

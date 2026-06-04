@@ -22,22 +22,22 @@ export const clientService = {
         return response.json();
     },
 
-getClientsByLawFirm: async (lawFirmCode: string): Promise<Client[]> => {
+getClientsByLawFirm: async (lawFirmCode: string, page: number = 0, size: number = 10): Promise<any> => {
         const token = localStorage.getItem('token');
-        const response = await fetch(`${BASE_URL}/clients/getClientsByLawFirmCode/${lawFirmCode}`, {
+        const response = await fetch(`${BASE_URL}/clients/getClientsByLawFirmCode/${lawFirmCode}?page=${page}&size=${size}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                'Authorization': `Bearer ${token}` 
             }
         });
 
         if (!response.ok) {
-            throw new Error('Failed to fetch clients for this firm.');
+            const err = await response.json().catch(() => null);
+            throw new Error(err?.message || 'Failed to fetch clients.');
         }
-        
-        const jsonResponse = await response.json();
-        return jsonResponse.data;
+
+        return await response.json(); 
     },
 
     getCaseByClientId: async (clientId: number) => {
@@ -57,5 +57,22 @@ getClientsByLawFirm: async (lawFirmCode: string): Promise<Client[]> => {
         
         const jsonResponse = await response.json();
         return jsonResponse.data; 
+    },
+    searchClientByNin: async (nin: string): Promise<any> => {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${BASE_URL}/clients/searchClientByNin/${nin}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}` 
+            }
+        });
+
+        if (!response.ok) {
+            const err = await response.json().catch(() => null);
+            throw new Error(err?.message || 'Failed to find a client matching that NIC.');
+        }
+
+        return await response.json(); 
     }
 };

@@ -1,239 +1,319 @@
 'use client';
 
-import { useState } from 'react';
-import { Check, Star, Zap, Shield } from 'lucide-react';
-import LoginForm from '../_components/auth/login/page'; // Adjust the import path if necessary
-import RegisterForm from '../_components/auth/register/page'; // Adjust the import path if necessary
+import { useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import LoginForm from '../_components/auth/login/page';
+import { Scale, CheckCircle2, AlertCircle, ArrowLeft, KeyRound, Mail } from 'lucide-react';
 
 export default function HomePage() {
-    // State to manage which component is currently visible
-    const [currentView, setCurrentView] = useState<'landing' | 'login' | 'register'>('landing');
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    
+    // State to manage which component is currently visible in the right panel
+    const [currentView, setCurrentView] = useState<'login' | 'forgot-password' | 'reset-password'>('login');
+    
+    // Forgot Password States
+    const [forgotEmail, setForgotEmail] = useState('');
+    const [isForgotLoading, setIsForgotLoading] = useState(false);
+    const [forgotMessage, setForgotMessage] = useState({ type: '', text: '' });
 
-    // Helper to store the selected plan in local storage and navigate to registration
-    const handleSelectPlan = (planType: 'STANDARD' | 'PRO' | 'CUSTOM') => {
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('selectedPlan', planType);
+    // Reset Password States
+    const [resetToken, setResetToken] = useState<string | null>(null);
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [isResetLoading, setIsResetLoading] = useState(false);
+    const [resetMessage, setResetMessage] = useState({ type: '', text: '' });
+
+    // Check URL for reset token on mount
+    useEffect(() => {
+        const token = searchParams?.get('token');
+        if (token) {
+            setResetToken(token);
+            setCurrentView('reset-password');
         }
-        setCurrentView('register');
+    }, [searchParams]);
+
+    // Handle Forgot Password Submit
+    const handleForgotPassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsForgotLoading(true);
+        setForgotMessage({ type: '', text: '' });
+
+        try {
+            const response = await fetch('http://localhost:8080/api/auth/forgot-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: forgotEmail })
+            });
+
+            if (!response.ok) {
+                const err = await response.json().catch(() => null);
+                throw new Error(err?.message || 'Failed to send reset link. Please try again.');
+            }
+
+            setForgotMessage({ type: 'success', text: 'Password reset link has been sent to your email.' });
+            setForgotEmail(''); // Clear input
+        } catch (err: any) {
+            setForgotMessage({ type: 'error', text: err.message });
+        } finally {
+            setIsForgotLoading(false);
+        }
     };
 
-    // Render the Login Component
-    if (currentView === 'login') {
-        return (
-            <div className="relative">
-                <button 
-                    onClick={() => setCurrentView('landing')}
-                    className="absolute top-6 left-6 text-blue-900 hover:text-amber-600 font-medium transition-colors"
-                >
-                    &larr; Back to Home
-                </button>
-                <LoginForm />
-            </div>
-        );
-    }
+    // Handle Reset Password Submit
+    const handleResetPassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsResetLoading(true);
+        setResetMessage({ type: '', text: '' });
 
-    // Render the Register Component
-    if (currentView === 'register') {
-        return (
-            <div className="relative">
-                <button 
-                    onClick={() => setCurrentView('landing')}
-                    className="absolute top-6 left-6 text-blue-900 hover:text-amber-600 font-medium transition-colors"
-                >
-                    &larr; Back to Home
-                </button>
-                <RegisterForm />
-            </div>
-        );
-    }
+        if (newPassword !== confirmPassword) {
+            setResetMessage({ type: 'error', text: 'Passwords do not match.' });
+            setIsResetLoading(false);
+            return;
+        }
 
-    // Default Landing Page View
-    return (
-        <div className="min-h-screen bg-slate-50 flex flex-col justify-between items-center px-4 sm:px-6 lg:px-8 py-12">
+        try {
+            const response = await fetch('http://localhost:8080/api/auth/reset-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: resetToken, newPassword: newPassword })
+            });
+
+            if (!response.ok) {
+                const err = await response.json().catch(() => null);
+                throw new Error(err?.message || 'Failed to reset password. The link might be expired.');
+            }
+
+            setResetMessage({ type: 'success', text: 'Password successfully reset. You can now log in.' });
+            setNewPassword('');
+            setConfirmPassword('');
             
-            <div className="max-w-6xl w-full space-y-20">
-                {/* Hero Section */}
-                <div className="text-center mt-10">
-                    <h1 className="text-5xl font-serif text-blue-900 font-bold mb-4">
-                        Chaambffb for law
-                    </h1>
-                    <p className="text-xl text-blue-900/80 mb-8 max-w-2xl mx-auto">
-                        Secure Partner Portal & Administrator Registration. Manage your legal cases with precision, confidentiality, and excellence.
-                    </p>
+            // Redirect to login after a short delay
+            setTimeout(() => {
+                router.replace('/'); // Clean URL
+                setCurrentView('login');
+            }, 3000);
 
-                    {/* Action Buttons */}
-                    <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mt-8">
-                        <button
-                            onClick={() => setCurrentView('login')}
-                            className="px-8 py-3 border border-transparent text-base font-medium rounded-sm text-white bg-blue-900 hover:bg-amber-600 transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-900 w-full sm:w-auto"
-                        >
-                            Access Portal (Login)
-                        </button>
-                        
-                        <button
-                            onClick={() => handleSelectPlan('STANDARD')}
-                            className="px-8 py-3 border-2 border-blue-900 text-base font-medium rounded-sm text-blue-900 bg-transparent hover:bg-blue-50 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-900 w-full sm:w-auto"
-                        >
-                            Start 14 Days Free Trial
-                        </button>
+        } catch (err: any) {
+            setResetMessage({ type: 'error', text: err.message });
+        } finally {
+            setIsResetLoading(false);
+        }
+    };
+
+    return (
+        /* Fixed to h-screen and overflow-hidden to prevent any page scrolling */
+        <main className="flex h-screen w-full bg-white font-sans text-slate-900 overflow-hidden">
+            
+            {/* LEFT PANEL: 3/5 Width - System Branding */}
+            <section className="hidden lg:flex flex-col justify-between w-3/5 bg-slate-950 text-white p-10 lg:p-14 relative h-full">
+                
+                {/* Modern Decorative Ambient Orbs */}
+                <div className="absolute -top-32 -left-32 w-[500px] h-[500px] bg-blue-600/30 rounded-full blur-[120px] mix-blend-screen pointer-events-none"></div>
+                <div className="absolute top-1/2 -right-32 w-[600px] h-[600px] bg-amber-500/10 rounded-full blur-[150px] mix-blend-screen pointer-events-none transform -translate-y-1/2"></div>
+                <div className="absolute -bottom-32 left-1/4 w-[400px] h-[400px] bg-indigo-500/20 rounded-full blur-[100px] mix-blend-screen pointer-events-none"></div>
+
+                <div className="relative z-10 flex flex-col h-full justify-center">
+                    <div className="flex items-center gap-3 mb-12">
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30">
+                            <Scale className="text-white w-6 h-6" />
+                        </div>
+                        <span className="text-2xl font-serif font-bold tracking-wide">Chambercript for Lawyers</span>
                     </div>
-                </div>
 
-                {/* Subscription Plans Section */}
-                <div className="space-y-12">
-                    <div className="text-center">
-                        <h2 className="text-3xl font-serif font-bold text-blue-900">
-                            Transparent Pricing
-                        </h2>
-                        <p className="text-blue-900/70 mt-2">
-                            Choose the plan that fits your law firm's size. All plans start with a 14-day free trial.
+                    <div className="max-w-2xl">
+                        <h1 className="text-4xl lg:text-5xl font-serif font-medium leading-[1.15] mb-6">
+                            Justice & Excellence,<br/>
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-amber-200">Streamlined.</span>
+                        </h1>
+                        <p className="text-lg text-slate-300 leading-relaxed font-light mb-10 max-w-xl">
+                            A secure, state-of-the-art partner portal designed for modern law firms. Manage cases, track hearings, and collaborate with absolute confidentiality.
                         </p>
-                    </div>
 
-                    {/* Pricing Cards Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        
-                        {/* STANDARD PLAN */}
-                        <div className="relative flex flex-col bg-white rounded-2xl shadow-sm border-2 border-slate-200 hover:border-slate-300 transition-all duration-300">
-                            <div className="p-8 flex-1">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <Shield className="w-5 h-5 text-slate-500" />
-                                    <h3 className="text-xl font-bold text-slate-900">Standard</h3>
-                                </div>
-                                <p className="text-slate-500 text-sm mb-4">Perfect for small practices just getting started.</p>
-                                
-                                {/* Price Display */}
-                                <div className="mb-6">
-                                    <span className="text-3xl font-bold text-slate-900">RS 6,000</span>
-                                    <span className="text-slate-500 text-sm"> / month</span>
-                                </div>
-
-                                <ul className="space-y-4 mb-8">
-                                    <li className="flex items-start gap-3">
-                                        <Check className="w-5 h-5 text-emerald-500 shrink-0" />
-                                        <span className="text-slate-700 text-sm">Max <strong className="text-slate-900">3 Accounts</strong> (Lawyers/Clerks)</span>
-                                    </li>
-                                    <li className="flex items-start gap-3">
-                                        <Check className="w-5 h-5 text-emerald-500 shrink-0" />
-                                        <span className="text-slate-700 text-sm"><strong className="text-slate-900">20 GB</strong> Document Storage</span>
-                                    </li>
-                                    <li className="flex items-start gap-3">
-                                        <Check className="w-5 h-5 text-emerald-500 shrink-0" />
-                                        <span className="text-slate-700 text-sm">Up to <strong className="text-slate-900">500 Records</strong> (Clients + Cases)</span>
-                                    </li>
-                                </ul>
+                        <div className="grid grid-cols-2 gap-8 border-t border-white/10 pt-8 mt-8">
+                            <div>
+                                <h3 className="text-base font-semibold text-white mb-2 flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-amber-400"></div> Bank-Level Security
+                                </h3>
+                                <p className="text-sm text-slate-400 leading-relaxed">
+                                    End-to-end encryption ensuring your client records and legal documents remain strictly confidential.
+                                </p>
                             </div>
-                            <div className="p-8 pt-0 mt-auto">
-                                <button
-                                    onClick={() => handleSelectPlan('STANDARD')}
-                                    className="w-full py-3 px-4 rounded-xl font-semibold transition-all duration-200 bg-white border-2 border-blue-900 text-blue-900 hover:bg-blue-900 hover:text-white"
-                                >
-                                    Start Free Trial
-                                </button>
+                            <div>
+                                <h3 className="text-base font-semibold text-white mb-2 flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div> Real-Time Sync
+                                </h3>
+                                <p className="text-sm text-slate-400 leading-relaxed">
+                                    Instant synchronization of court dates, filings, and internal task delegations across your firm.
+                                </p>
                             </div>
                         </div>
-
-                        {/* PRO PLAN */}
-                        <div className="relative flex flex-col bg-slate-900 rounded-2xl shadow-lg border-2 border-slate-800 transition-all duration-300 transform md:-translate-y-4">
-                            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-amber-500 text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-                                Most Popular
-                            </div>
-                            <div className="absolute top-4 right-4 bg-amber-500/20 text-amber-500 p-1.5 rounded-lg">
-                                <Star className="w-5 h-5 fill-current" />
-                            </div>
-                            <div className="p-8 flex-1">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <Zap className="w-5 h-5 text-amber-500" />
-                                    <h3 className="text-xl font-bold text-white">Professional</h3>
-                                </div>
-                                <p className="text-slate-400 text-sm mb-4">Built for growing law firms requiring more power.</p>
-                                
-                                {/* Price Display */}
-                                <div className="mb-6">
-                                    <span className="text-3xl font-bold text-white">RS 9,000</span>
-                                    <span className="text-slate-400 text-sm"> / month</span>
-                                </div>
-
-                                <ul className="space-y-4 mb-8">
-                                    <li className="flex items-start gap-3">
-                                        <Check className="w-5 h-5 text-amber-500 shrink-0" />
-                                        <span className="text-slate-300 text-sm">Max <strong className="text-white">7 Accounts</strong> (Lawyers/Clerks)</span>
-                                    </li>
-                                    <li className="flex items-start gap-3">
-                                        <Check className="w-5 h-5 text-amber-500 shrink-0" />
-                                        <span className="text-slate-300 text-sm"><strong className="text-white">50 GB</strong> Document Storage</span>
-                                    </li>
-                                    <li className="flex items-start gap-3">
-                                        <Check className="w-5 h-5 text-amber-500 shrink-0" />
-                                        <span className="text-slate-300 text-sm">Up to <strong className="text-white">1,500 Records</strong> (Clients + Cases)</span>
-                                    </li>
-                                    <li className="flex items-start gap-3">
-                                        <Check className="w-5 h-5 text-amber-500 shrink-0" />
-                                        <span className="text-slate-300 text-sm"><strong className="text-white">Generate Reports</strong> & Analytics</span>
-                                    </li>
-                                </ul>
-                            </div>
-                            <div className="p-8 pt-0 mt-auto">
-                                <button
-                                    onClick={() => handleSelectPlan('PRO')}
-                                    className="w-full py-3 px-4 rounded-xl font-semibold transition-all duration-200 bg-amber-500 text-slate-900 hover:bg-amber-400 shadow-lg shadow-amber-500/20"
-                                >
-                                    Start Free Trial
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* CUSTOM PLAN */}
-                        <div className="relative flex flex-col bg-white rounded-2xl shadow-sm border-2 border-slate-200 hover:border-slate-300 transition-all duration-300">
-                            <div className="p-8 flex-1">
-                                <h3 className="text-xl font-bold text-slate-900 mb-2">Custom / Enterprise</h3>
-                                <p className="text-slate-500 text-sm mb-4">Tailor a plan specifically for your enterprise demands.</p>
-                                
-                                {/* Price Display */}
-                                <div className="mb-6">
-                                    <span className="text-3xl font-bold text-slate-900">RS 15,000+</span>
-                                    <span className="text-slate-500 text-sm"> / month</span>
-                                </div>
-
-                                <ul className="space-y-4 mb-8">
-                                    <li className="flex items-start gap-3">
-                                        <Check className="w-5 h-5 text-emerald-500 shrink-0" />
-                                        <span className="text-slate-700 text-sm"><strong className="text-slate-900">Custom</strong> Employees & Storage</span>
-                                    </li>
-                                    <li className="flex items-start gap-3">
-                                        <Check className="w-5 h-5 text-emerald-500 shrink-0" />
-                                        <span className="text-slate-700 text-sm"><strong className="text-slate-900">Unlimited</strong> Records</span>
-                                    </li>
-                                    <li className="flex items-start gap-3">
-                                        <Check className="w-5 h-5 text-emerald-500 shrink-0" />
-                                        <span className="text-slate-700 text-sm">Dedicated Account Manager</span>
-                                    </li>
-                                    <li className="flex items-start gap-3">
-                                        <Check className="w-5 h-5 text-emerald-500 shrink-0" />
-                                        <span className="text-slate-700 text-sm">Priority Support SLA</span>
-                                    </li>
-                                </ul>
-                            </div>
-                            <div className="p-8 pt-0 mt-auto">
-                                <button
-                                    onClick={() => handleSelectPlan('CUSTOM')}
-                                    className="w-full py-3 px-4 rounded-xl font-semibold transition-all duration-200 bg-slate-100 text-slate-800 hover:bg-slate-200"
-                                >
-                                    Contact Sales
-                                </button>
-                            </div>
-                        </div>
-
                     </div>
                 </div>
-            </div>
 
-            {/* Footer */}
-            <div className="w-full max-w-6xl mt-16 pt-8 border-t border-slate-300 text-center">
-                <p className="text-sm text-blue-900/60 pb-8">
-                    &copy; {new Date().getFullYear()} Justice & Associates Law Firm Software. All rights reserved.
-                </p>
-            </div>
-        </div>
+                <div className="relative z-10 text-slate-500 text-xs font-medium tracking-wide mt-auto pt-6">
+                    &copy; {new Date().getFullYear()} Justice & Associates. All rights reserved.
+                </div>
+            </section>
+
+            {/* RIGHT PANEL: 2/5 Width - Auth Portal */}
+            {/* Added overflow-y-auto here so only the form scrolls if opened on very tiny screens, preventing body scroll */}
+            <section className="w-full lg:w-2/5 flex flex-col justify-center items-center p-6 lg:p-10 relative z-20 bg-white shadow-[-20px_0_40px_-15px_rgba(0,0,0,0.05)] h-full overflow-y-auto">
+                <div className="w-full max-w-[380px] my-auto">
+                    
+                    {/* View: LOGIN */}
+                    {currentView === 'login' && (
+                        <div className="animate-in fade-in slide-in-from-right-4 duration-500">
+                            {/* Mobile only branding */}
+                            <div className="flex items-center justify-center gap-3 mb-8 lg:hidden">
+                                <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
+                                    <Scale className="text-white w-5 h-5" />
+                                </div>
+                                <span className="text-2xl font-serif font-bold text-slate-900">Chayers</span>
+                            </div>
+
+                            <LoginForm />
+                            
+                            <div className="mt-2 text-center">
+                                <button 
+                                    onClick={() => setCurrentView('forgot-password')}
+                                    className="text-sm text-slate-500 hover:text-blue-600 font-medium transition-colors hover:underline"
+                                >
+                                    Forgot your password?
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* View: FORGOT PASSWORD */}
+                    {currentView === 'forgot-password' && (
+                        <div className="animate-in fade-in slide-in-from-right-4 duration-500">
+                            <div className="mb-6 text-center">
+                                <div className="mx-auto w-14 h-14 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-4">
+                                    <KeyRound className="w-7 h-7" />
+                                </div>
+                                <h2 className="text-2xl font-serif font-bold text-slate-900 mb-2">Reset Password</h2>
+                                <p className="text-slate-500 text-sm leading-relaxed">
+                                    Enter your registered email address to receive secure reset instructions.
+                                </p>
+                            </div>
+
+                            {forgotMessage.text && (
+                                <div className={`p-3 rounded-lg text-sm flex items-start gap-2 mb-6 ${forgotMessage.type === 'error' ? 'bg-red-50 text-red-700 border border-red-100' : 'bg-emerald-50 text-emerald-700 border border-emerald-100'}`}>
+                                    {forgotMessage.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5"/> : <AlertCircle className="w-4 h-4 shrink-0 mt-0.5"/>}
+                                    <span className="leading-relaxed">{forgotMessage.text}</span>
+                                </div>
+                            )}
+
+                            <form onSubmit={handleForgotPassword} className="space-y-5">
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email Address</label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                            <Mail className="h-4 w-4 text-slate-400" />
+                                        </div>
+                                        <input 
+                                            type="email" 
+                                            required
+                                            value={forgotEmail}
+                                            onChange={(e) => setForgotEmail(e.target.value)}
+                                            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition-all text-slate-900 bg-slate-50/50 focus:bg-white text-sm"
+                                            placeholder="partner@lawfirm.com"
+                                        />
+                                    </div>
+                                </div>
+                                <button 
+                                    type="submit"
+                                    disabled={isForgotLoading}
+                                    className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold tracking-wide transition-all shadow-md shadow-blue-600/20 disabled:opacity-70 disabled:shadow-none flex justify-center items-center"
+                                >
+                                    {isForgotLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : 'Send Reset Link'}
+                                </button>
+                            </form>
+
+                            <div className="mt-8 text-center">
+                                <button 
+                                    onClick={() => setCurrentView('login')}
+                                    className="text-sm text-slate-500 hover:text-slate-900 font-semibold transition-colors flex items-center justify-center gap-1.5 mx-auto"
+                                >
+                                    <ArrowLeft className="w-3.5 h-3.5" /> Back to Login
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* View: RESET PASSWORD (Accessed via Email Link) */}
+                    {currentView === 'reset-password' && (
+                        <div className="animate-in fade-in slide-in-from-right-4 duration-500">
+                            <div className="mb-6 text-center">
+                                <div className="mx-auto w-14 h-14 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mb-4">
+                                    <KeyRound className="w-7 h-7" />
+                                </div>
+                                <h2 className="text-2xl font-serif font-bold text-slate-900 mb-2">Create New Password</h2>
+                                <p className="text-slate-500 text-sm leading-relaxed">
+                                    Please enter and confirm your new password below.
+                                </p>
+                            </div>
+
+                            {resetMessage.text && (
+                                <div className={`p-3 rounded-lg text-sm flex items-start gap-2 mb-6 ${resetMessage.type === 'error' ? 'bg-red-50 text-red-700 border border-red-100' : 'bg-emerald-50 text-emerald-700 border border-emerald-100'}`}>
+                                    {resetMessage.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5"/> : <AlertCircle className="w-4 h-4 shrink-0 mt-0.5"/>}
+                                    <span className="leading-relaxed">{resetMessage.text}</span>
+                                </div>
+                            )}
+
+                            <form onSubmit={handleResetPassword} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">New Password</label>
+                                    <input 
+                                        type="password" 
+                                        required
+                                        minLength={8}
+                                        value={newPassword}
+                                        onChange={(e) => setNewPassword(e.target.value)}
+                                        className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition-all text-slate-900 bg-slate-50/50 focus:bg-white text-sm"
+                                        placeholder="••••••••"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Confirm New Password</label>
+                                    <input 
+                                        type="password" 
+                                        required
+                                        minLength={8}
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition-all text-slate-900 bg-slate-50/50 focus:bg-white text-sm"
+                                        placeholder="••••••••"
+                                    />
+                                </div>
+                                <button 
+                                    type="submit"
+                                    disabled={isResetLoading || resetMessage.type === 'success'}
+                                    className="w-full py-3 px-4 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-bold tracking-wide transition-all shadow-md shadow-amber-500/20 disabled:opacity-70 disabled:shadow-none flex justify-center items-center mt-2"
+                                >
+                                    {isResetLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : 'Confirm Password'}
+                                </button>
+                            </form>
+
+                            {resetMessage.type !== 'success' && (
+                                <div className="mt-8 text-center">
+                                    <button 
+                                        onClick={() => {
+                                            router.replace('/'); 
+                                            setCurrentView('login');
+                                        }}
+                                        className="text-sm text-slate-500 hover:text-slate-900 font-semibold transition-colors flex items-center justify-center gap-1.5 mx-auto"
+                                    >
+                                        <ArrowLeft className="w-3.5 h-3.5" /> Return to login
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                </div>
+            </section>
+        </main>
     );
 }
