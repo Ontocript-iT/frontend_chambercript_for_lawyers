@@ -278,8 +278,6 @@ export default function TaskManagementPage() {
                     </div>
                 )}
             </div>
-
-            {/* --- Case Details Modal Popup --- */}
             {isCaseModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -310,10 +308,10 @@ export default function TaskManagementPage() {
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-y-4 gap-x-6 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                                        <div><label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Case Type</label><p className="text-sm font-medium mt-0.5">{selectedCase.caseType?.typeName || 'N/A'}</p></div>
-                                        <div><label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Filing Date</label><p className="text-sm font-medium mt-0.5">{selectedCase.filingDate}</p></div>
-                                        <div><label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Court</label><p className="text-sm font-medium mt-0.5">{selectedCase.court?.courtName || 'N/A'}</p></div>
-                                        <div><label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Lawyer</label><p className="text-sm font-medium mt-0.5">{selectedCase.assignedLawyer}</p></div>
+                                        <div><label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Case Type</label><p className="text-sm font-medium text-slate-700 mt-0.5">{selectedCase.caseType?.typeName || 'N/A'}</p></div>
+                                        <div><label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Filing Date</label><p className="text-sm font-medium text-slate-700 mt-0.5">{selectedCase.filingDate}</p></div>
+                                        <div><label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Court</label><p className="text-sm font-medium text-slate-700 mt-0.5">{selectedCase.court?.courtName || 'N/A'}</p></div>
+                                        <div><label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Lawyer</label><p className="text-sm font-medium text-slate-700 mt-0.5">{selectedCase.assignedLawyer}</p></div>
                                     </div>
 
                                     <div>

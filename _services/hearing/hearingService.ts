@@ -1,7 +1,7 @@
 
 import { AddHearingRequest, Hearing } from '../../models/hearing';
 
-const BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}/api/hearings'`;
+const BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}/api/hearings`;
 
 
 const getHeaders = () => {
