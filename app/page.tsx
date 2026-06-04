@@ -1,12 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import LoginForm from '../_components/auth/login/page';
 import { Scale, CheckCircle2, AlertCircle, ArrowLeft, KeyRound, Mail } from 'lucide-react';
 
-export default function HomePage() {
+const BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}/api`;
+
+// 1. Rename your main logic to an inner component
+function HomeContent() {
     const router = useRouter();
+    
+    // Now this is safe because its parent (HomePage) wraps it in Suspense
     const searchParams = useSearchParams();
     
     // State to manage which component is currently visible in the right panel
@@ -40,7 +45,7 @@ export default function HomePage() {
         setForgotMessage({ type: '', text: '' });
 
         try {
-            const response = await fetch('http://localhost:8080/api/auth/forgot-password', {
+            const response = await fetch(`${BASE_URL}/auth/forgot-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: forgotEmail })
@@ -73,7 +78,7 @@ export default function HomePage() {
         }
 
         try {
-            const response = await fetch('http://localhost:8080/api/auth/reset-password', {
+            const response = await fetch(`${BASE_URL}/auth/reset-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ token: resetToken, newPassword: newPassword })
@@ -102,7 +107,6 @@ export default function HomePage() {
     };
 
     return (
-        /* Fixed to h-screen and overflow-hidden to prevent any page scrolling */
         <main className="flex h-screen w-full bg-white font-sans text-slate-900 overflow-hidden">
             
             {/* LEFT PANEL: 3/5 Width - System Branding */}
@@ -157,7 +161,6 @@ export default function HomePage() {
             </section>
 
             {/* RIGHT PANEL: 2/5 Width - Auth Portal */}
-            {/* Added overflow-y-auto here so only the form scrolls if opened on very tiny screens, preventing body scroll */}
             <section className="w-full lg:w-2/5 flex flex-col justify-center items-center p-6 lg:p-10 relative z-20 bg-white shadow-[-20px_0_40px_-15px_rgba(0,0,0,0.05)] h-full overflow-y-auto">
                 <div className="w-full max-w-[380px] my-auto">
                     
@@ -169,7 +172,7 @@ export default function HomePage() {
                                 <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
                                     <Scale className="text-white w-5 h-5" />
                                 </div>
-                                <span className="text-2xl font-serif font-bold text-slate-900">Chayers</span>
+                                <span className="text-2xl font-serif font-bold text-slate-900">Chambercript</span>
                             </div>
 
                             <LoginForm />
@@ -315,5 +318,19 @@ export default function HomePage() {
                 </div>
             </section>
         </main>
+    );
+}
+
+// 2. Export a clean wrapper component that contains the Suspense boundary
+export default function HomePage() {
+    return (
+        // I created a nice full-screen loading state so it doesn't look broken while Next.js loads the client bundle
+        <Suspense fallback={
+            <div className="flex h-screen w-full items-center justify-center bg-white">
+                <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+        }>
+            <HomeContent />
+        </Suspense>
     );
 }
