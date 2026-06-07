@@ -8,6 +8,7 @@ export interface SuperAdminSubscription {
     maxEmployees: number;
     maxStorageGb: number;
     active: boolean;
+    email: string;
 }
 
 export interface PaymentRecord {

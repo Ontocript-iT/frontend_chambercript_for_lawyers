@@ -10,10 +10,12 @@ const getHeaders = () => ({
 });
 
 export const superAdminService = {
-    getAllSubscriptions: async (): Promise<SuperAdminSubscription[]> => {
-        const response = await fetch(`${SUPER_ADMIN_URL}/subscriptions`, { headers: getHeaders() });
+getAllSubscriptions: async (page: number = 0, size: number = 10): Promise<any> => {
+        const response = await fetch(`${SUPER_ADMIN_URL}/subscriptions?page=${page}&size=${size}`, { 
+            headers: getHeaders() 
+        });
         if (!response.ok) throw new Error('Failed to fetch subscriptions.');
-        return (await response.json()).data;
+        return await response.json();
     },
 
     searchSubscriptions: async (query: string): Promise<SuperAdminSubscription[]> => {
@@ -53,10 +55,13 @@ export const superAdminService = {
         return response.json();
     },
 
-    getAllLawFirms: async (): Promise<LawFirmAdmin[]> => {
-        const response = await fetch(`${SUPER_ADMIN_URL}/getAllLawFirms`, { headers: getHeaders() });
+getAllLawFirms: async (page: number = 0, size: number = 10): Promise<any> => {
+        const response = await fetch(`${SUPER_ADMIN_URL}/getAllLawFirms?page=${page}&size=${size}`, { 
+            headers: getHeaders() 
+        });
         if (!response.ok) throw new Error('Failed to fetch law firms directory.');
-        return (await response.json()).data;
+        
+        return await response.json();
     },
 
     searchLawFirmByCode: async (code: string): Promise<LawFirmAdmin> => {
@@ -70,9 +75,11 @@ export const superAdminService = {
         }
         return (await response.json()).data;
     },
-    getInactiveSubscriptions: async (): Promise<SuperAdminSubscription[]> => {
-        const response = await fetch(`${SUPER_ADMIN_URL}/getInactiveSubscriptions`, { headers: getHeaders() });
+getInactiveSubscriptions: async (page: number = 0, size: number = 10): Promise<any> => {
+        const response = await fetch(`${SUPER_ADMIN_URL}/getInactiveSubscriptions?page=${page}&size=${size}`, { 
+            headers: getHeaders() 
+        });
         if (!response.ok) throw new Error('Failed to fetch inactive subscriptions.');
-        return (await response.json()).data;
+        return await response.json();
     },
 };

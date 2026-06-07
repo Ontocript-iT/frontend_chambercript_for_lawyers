@@ -1,10 +1,10 @@
-// app/dashboard/super-admin/subscriptions/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
 import { SuperAdminSubscription } from '../../../../models/superAdmin';
-import { Search, CheckCircle2, XCircle, ListFilter, AlertCircle } from 'lucide-react';
+import { Search, CheckCircle2, XCircle, ListFilter, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { superAdminService } from '@/_services/super-admin/super-admin.service';
+
 
 export default function SubscriptionsPage() {
     const [subTab, setSubTab] = useState<'all' | 'inactive'>('all');
@@ -13,22 +13,35 @@ export default function SubscriptionsPage() {
     const [isSubsLoading, setIsSubsLoading] = useState(true);
     const [subsError, setSubsError] = useState('');
 
+    // Pagination States
+    const [currentPage, setCurrentPage] = useState(0);
+    const [pageSize, setPageSize] = useState(5);
+    const [totalItems, setTotalItems] = useState(0);
+    const totalPages = Math.ceil(totalItems / pageSize);
+
     useEffect(() => {
-        fetchSubscriptions(subTab);
-    }, [subTab]);
+        // Only fetch paginated data if not currently searching
+        if (!searchQuery) {
+            fetchSubscriptions(subTab);
+        }
+    }, [subTab, currentPage, pageSize]);
 
     const fetchSubscriptions = async (currentTab: 'all' | 'inactive') => {
-        setIsSubsLoading(true); setSubsError('');
+        setIsSubsLoading(true); 
+        setSubsError('');
         try {
-            let data;
+            let result;
             if (currentTab === 'inactive') {
-                data = await superAdminService.getInactiveSubscriptions();
+                result = await superAdminService.getInactiveSubscriptions(currentPage, pageSize);
             } else {
-                data = await superAdminService.getAllSubscriptions();
+                result = await superAdminService.getAllSubscriptions(currentPage, pageSize);
             }
-            setSubscriptions(data);
+            setSubscriptions(result.data || []);
+            setTotalItems(result.totalItems || 0);
         } catch (err: any) { 
             setSubsError(err.message); 
+            setSubscriptions([]);
+            setTotalItems(0);
         } finally { 
             setIsSubsLoading(false); 
         }
@@ -36,16 +49,25 @@ export default function SubscriptionsPage() {
 
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!searchQuery) return fetchSubscriptions(subTab);
         
-        setIsSubsLoading(true); setSubsError('');
+        if (!searchQuery) {
+            setCurrentPage(0);
+            return fetchSubscriptions(subTab);
+        }
+        
+        setIsSubsLoading(true); 
+        setSubsError('');
         try {
-            // When searching, we hit the search endpoint (which usually searches across all)
             const data = await superAdminService.searchSubscriptions(searchQuery);
-            setSubscriptions(data);
-            setSubTab('all'); // Reset tab to 'all' since search results might include both
+         const results = Array.isArray(data) ? data : ((data as any).data || [data]);
+            setSubscriptions(results);
+            setTotalItems(results.length);
+            setSubTab('all'); 
+            setCurrentPage(0);
         } catch (err: any) { 
             setSubsError(err.message); 
+            setSubscriptions([]);
+            setTotalItems(0);
         } finally { 
             setIsSubsLoading(false); 
         }
@@ -55,16 +77,28 @@ export default function SubscriptionsPage() {
         try {
             await superAdminService.activateSubscription(id);
             
-            // If we are looking at the inactive list, remove it from the screen.
-            // If we are looking at the 'all' list, just update its status to active.
             if (subTab === 'inactive') {
                 setSubscriptions(prev => prev.filter(sub => sub.id !== id));
+                setTotalItems(prev => Math.max(0, prev - 1));
             } else {
                 setSubscriptions(prev => prev.map(sub => sub.id === id ? { ...sub, active: true } : sub));
             }
         } catch (err: any) { 
             alert(err.message); 
         }
+    };
+
+    const handlePrevPage = () => {
+        if (currentPage > 0) setCurrentPage(prev => prev - 1);
+    };
+
+    const handleNextPage = () => {
+        if (currentPage < totalPages - 1) setCurrentPage(prev => prev + 1);
+    };
+
+    const handlePageSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setPageSize(Number(e.target.value));
+        setCurrentPage(0);
     };
 
     return (
@@ -75,13 +109,21 @@ export default function SubscriptionsPage() {
                 {/* Inner Navigation Toggle */}
                 <div className="bg-slate-200/50 p-1 rounded-lg inline-flex w-full sm:w-auto border border-slate-200">
                     <button 
-                        onClick={() => { setSearchQuery(''); setSubTab('all'); }}
+                        onClick={() => { 
+                            setSearchQuery(''); 
+                            setSubTab('all'); 
+                            setCurrentPage(0); 
+                        }}
                         className={`flex-1 sm:flex-none px-4 py-2 text-sm font-medium rounded-md transition-colors ${subTab === 'all' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                     >
                         All Plans
                     </button>
                     <button 
-                        onClick={() => { setSearchQuery(''); setSubTab('inactive'); }}
+                        onClick={() => { 
+                            setSearchQuery(''); 
+                            setSubTab('inactive'); 
+                            setCurrentPage(0); 
+                        }}
                         className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium rounded-md transition-colors ${subTab === 'inactive' ? 'bg-white text-amber-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                     >
                         <ListFilter className="w-4 h-4" /> Pending Activation
@@ -94,9 +136,14 @@ export default function SubscriptionsPage() {
                     <input 
                         type="text" 
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                            if (e.target.value === '') {
+                                setCurrentPage(0);
+                            }
+                        }}
                         placeholder="Search by Admin Email or NIC..." 
-                        className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-shadow"
+                        className="w-full pl-9 pr-4 py-2.5 text-slate-500 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-shadow"
                     />
                     <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700">
                         Search
@@ -139,6 +186,7 @@ export default function SubscriptionsPage() {
                                     <td className="py-4 px-6">
                                         <div className="font-bold text-slate-900">{sub.adminName}</div>
                                         <div className="text-xs text-slate-500 mt-0.5">Admin ID: {sub.adminId}</div>
+                                
                                     </td>
                                     <td className="py-4 px-6">
                                         <span className="inline-flex px-2.5 py-1 rounded bg-indigo-50 text-indigo-700 text-[11px] font-bold uppercase border border-indigo-100 mb-1">
@@ -170,6 +218,51 @@ export default function SubscriptionsPage() {
                     </table>
                 )}
             </div>
+
+            {/* Pagination Controls */}
+            {!isSubsLoading && subscriptions.length > 0 && (
+                <div className="px-6 py-4 border-t border-slate-200 bg-white flex flex-col sm:flex-row items-center justify-between gap-4 rounded-b-2xl">
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm text-slate-600">Rows per page:</span>
+                            <select
+                                value={pageSize}
+                                onChange={handlePageSizeChange}
+                                disabled={!!searchQuery}
+                                className="border border-slate-300 rounded-md bg-white text-sm text-slate-700 py-1 pl-2 pr-6 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <option value={5}>5</option>
+                                <option value={10}>10</option>
+                                <option value={20}>20</option>
+                                <option value={50}>50</option>
+                            </select>
+                        </div>
+                        <div className="text-sm text-slate-600 hidden sm:block">
+                            Showing <span className="font-medium text-slate-900">{totalItems === 0 ? 0 : currentPage * pageSize + 1}</span> to <span className="font-medium text-slate-900">{Math.min((currentPage + 1) * pageSize, totalItems)}</span> of <span className="font-medium text-slate-900">{totalItems}</span> entries
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={handlePrevPage}
+                            disabled={currentPage === 0 || !!searchQuery}
+                            className="p-1.5 rounded-md bg-white border border-slate-300 text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <ChevronLeft className="w-5 h-5" />
+                        </button>
+                        <span className="text-sm font-medium text-slate-700 px-2">
+                            Page {currentPage + 1} of {Math.max(1, totalPages)}
+                        </span>
+                        <button
+                            onClick={handleNextPage}
+                            disabled={currentPage >= totalPages - 1 || totalPages === 0 || !!searchQuery}
+                            className="p-1.5 rounded-md bg-white border border-slate-300 text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <ChevronRight className="w-5 h-5" />
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

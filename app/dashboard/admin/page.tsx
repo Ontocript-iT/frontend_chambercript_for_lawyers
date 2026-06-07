@@ -40,7 +40,7 @@ export default function AdminDashboard() {
     const [isDayModalOpen, setIsDayModalOpen] = useState(false);
 
     useEffect(() => {
-        const fetchDashboardData = async () => {
+      const fetchDashboardData = async () => {
             const storedUser = localStorage.getItem('user');
             if (!storedUser) return;
             const user: User = JSON.parse(storedUser);
@@ -52,10 +52,16 @@ export default function AdminDashboard() {
             }
 
             try {
-                const auditData = await adminService.getAuditLogs(user.lawFirmCode);
-                const sortedLogs = auditData.sort((a: any, b: any) => 
+                // Pass page 0 and size 10 to get the most recent logs for the dashboard
+                const result = await adminService.getAuditLogs(user.lawFirmCode, 0, 10);
+                
+                // Safely extract the array from the paginated response object
+                const logsArray = result.data || [];
+                
+                const sortedLogs = logsArray.sort((a: any, b: any) => 
                     new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
                 );
+                
                 setLogs(sortedLogs);
             } catch (err: any) {
                 setError(err.message);
@@ -162,8 +168,7 @@ export default function AdminDashboard() {
 
             {/* Main Content Grid: Activity & Calendar */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                
-                {/* Recent Firm Activity */}
+  
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden lg:col-span-2 flex flex-col h-[500px]">
                     <div className="px-6 py-5 border-b border-slate-200 flex items-center gap-2 bg-slate-50">
                         <Activity className="w-5 h-5 text-amber-600" />

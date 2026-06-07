@@ -48,12 +48,13 @@ const NAV_GROUPS = [
                 roles: ['ADMIN'], 
                 icon: Users,
                 subItems: [
-                    { name: 'Register Employee', href: '/dashboard/admin/users/register', roles: ['ADMIN'] },
-                     { name: 'Employees', href: '/dashboard/admin/users/employee', roles: ['ADMIN'] },
+                    { name: 'Register Staff', href: '/dashboard/admin/users/register', roles: ['ADMIN'] },
+                     { name: 'Staff Directory', href: '/dashboard/admin/users/employee', roles: ['ADMIN'] },
                 ]
             },
             { name: 'Subscription', href: '/dashboard/admin/subscription', roles: ['ADMIN'], icon: CreditCard },
             { name: 'Settings', href: '/settings/profile', roles: ['ADMIN', 'JUNIOR_LAWYER', 'CLERK'], icon: Settings },
+            { name: 'Audit Logs', href: '/dashboard/admin/audit-logs', roles: ['ADMIN'], icon: Settings },
         ]
     },
     {
