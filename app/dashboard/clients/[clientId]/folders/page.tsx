@@ -25,7 +25,6 @@ export default function ClientFoldersPage() {
 
     const currentFolderId = breadcrumbs[breadcrumbs.length - 1].id;
 
-    // --- Modals State ---
     const [isUploadOpen, setIsUploadOpen] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [uploadError, setUploadError] = useState('');
@@ -36,13 +35,17 @@ export default function ClientFoldersPage() {
     const [folderError, setFolderError] = useState('');
     const [folderForm, setFolderForm] = useState({ name: '' });
 
-    // --- Rename Folder State ---
     const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
     const [isRenaming, setIsRenaming] = useState(false);
     const [renameForm, setRenameForm] = useState({ id: 0, name: '' });
     const [activeCaseId, setActiveCaseId] = useState<number | null>(null);
 
-    // 1. Initial Load
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [folderToDelete, setFolderToDelete] = useState<{ id: number, name: string } | null>(null);
+    const [deleteError, setDeleteError] = useState('');
+
+
     useEffect(() => {
         const userStr = localStorage.getItem('user');
         if (userStr) {
@@ -165,15 +168,26 @@ export default function ClientFoldersPage() {
         } finally { setIsRenaming(false); }
     };
 
-    // 6. Delete Folder Handler
-    const handleDeleteFolder = async (folderId: number, folderName: string) => {
-        if (confirm(`Are you sure you want to delete the folder "${folderName}"? This action cannot be undone.`)) {
-            try {
-                await folderService.deleteFolder(folderId);
-                fetchFoldersForCurrentView();
-            } catch (err: any) {
-                alert(`Error deleting folder: ${err.message}`);
-            }
+    const handleDeleteFolderClick = (folderId: number, folderName: string) => {
+        setFolderToDelete({ id: folderId, name: folderName });
+        setDeleteError('');
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDeleteFolder = async () => {
+        if (!folderToDelete) return;
+        
+        setIsDeleting(true);
+        setDeleteError('');
+        try {
+            await folderService.deleteFolder(folderToDelete.id);
+            setIsDeleteModalOpen(false);
+            setFolderToDelete(null);
+            fetchFoldersForCurrentView();
+        } catch (err: any) {
+            setDeleteError(err.message || 'Failed to delete folder.');
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -285,13 +299,13 @@ export default function ClientFoldersPage() {
                                                 >
                                                     <Edit className="w-4 h-4" />
                                                 </button>
-                                                <button 
-                                                    onClick={() => handleDeleteFolder(folder.id, folder.name)}
-                                                    className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
-                                                    title="Delete Folder"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
+                                              <button 
+    onClick={() => handleDeleteFolderClick(folder.id, folder.name)}
+    className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
+    title="Delete Folder"
+>
+    <Trash2 className="w-4 h-4" />
+</button>
                                             </div>
 
                                         </div>
@@ -492,6 +506,44 @@ export default function ClientFoldersPage() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* --- Delete Folder Modal --- */}
+            {isDeleteModalOpen && folderToDelete && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+                        <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-slate-50/50">
+                            <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2.5">
+                                <div className="p-1.5 bg-red-100 rounded-md text-red-600"><Trash2 className="w-5 h-5" /></div>
+                                Confirm Deletion
+                            </h3>
+                            <button onClick={() => setIsDeleteModalOpen(false)} className="text-slate-400 hover:text-slate-700 hover:bg-slate-100 p-1.5 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-6">
+                            {deleteError && <div className="mb-4 p-3.5 bg-red-50 text-red-700 border border-red-200 rounded-xl text-sm font-medium">{deleteError}</div>}
+                            
+                            <p className="text-slate-700 mb-6 leading-relaxed">
+                                Are you sure you want to delete the folder <span className="font-bold text-slate-900">"{folderToDelete.name}"</span>? This action cannot be undone.
+                            </p>
+                            
+                            <div className="flex justify-end gap-3">
+                                <button type="button" onClick={() => setIsDeleteModalOpen(false)} className="px-5 py-2.5 text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 rounded-xl font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300">
+                                    Cancel
+                                </button>
+                                <button 
+                                    onClick={confirmDeleteFolder} 
+                                    disabled={isDeleting} 
+                                    className="px-6 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1"
+                                >
+                                    {isDeleting ? <div className="w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin"></div> : null}
+                                    {isDeleting ? 'Deleting...' : 'Delete Folder'}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

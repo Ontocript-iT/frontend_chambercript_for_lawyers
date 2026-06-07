@@ -4,30 +4,29 @@ import { RegisterEmployeeRequest } from '../../models/auth';
 const BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}/api`;
 
 export const adminService = {
-  registerEmployee: async (employeeData: RegisterEmployeeRequest): Promise<any> => {
-        const token = localStorage.getItem('token');
+ registerEmployee: async (employeeData: FormData): Promise<any> => {
+    const token = localStorage.getItem('token');
+    
+    const response = await fetch(`${BASE_URL}/admin/register-employee`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}` 
+        },
+        body: employeeData,
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
         
-        const response = await fetch(`${BASE_URL}/admin/register-employee`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}` 
-            },
-            body: JSON.stringify(employeeData),
-        });
+        throw new Error(
+            errorData?.error || 
+            errorData?.message || 
+            'Failed to register employee.'
+        );
+    }
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => null);
-            
-            throw new Error(
-                errorData?.error || 
-                errorData?.message || 
-                'Failed to register employee.'
-            );
-        }
-
-        return response.json();
-    },
+    return response.json();
+},
 
     getEmployeesByAdmin: async (adminId: number): Promise<any> => {
         const token = localStorage.getItem('token');
@@ -69,11 +68,11 @@ export const adminService = {
         
         return { success: true };
     },
-    getAuditLogs: async (lawFirmCode: string): Promise<any> => {
+ getAuditLogs: async (lawFirmCode: string, page: number = 0, size: number = 10): Promise<any> => {
         const token = localStorage.getItem('token');
         
-        // Use the endpoint provided, passing the dynamic lawFirmCode
-        const response = await fetch(`${BASE_URL}/audit-logs/user/${lawFirmCode}`, {
+        // Append pagination parameters to the URL
+        const response = await fetch(`${BASE_URL}/audit-logs/user/${lawFirmCode}?page=${page}&size=${size}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -86,8 +85,8 @@ export const adminService = {
             throw new Error(errorData?.message || 'Failed to fetch audit logs.');
         }
 
-        const jsonResponse = await response.json();
-        return jsonResponse.data; // Return the array of logs
+        // Return the full response object so the component gets .data and .totalItems
+        return await response.json(); 
     },
 
     getEmployeesByAdminId: async (adminId: number) => {

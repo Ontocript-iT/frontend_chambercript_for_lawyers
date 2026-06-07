@@ -25,6 +25,7 @@ export interface RegisterAdminRequest {
     phone: string;
     nic: string;
     planType: string;
+    smsPlan: string;
 }
 
 export interface RegisterEmployeeRequest {

@@ -1,4 +1,4 @@
-// app/dashboard/clients/register/page.tsx
+
 'use client';
 
 import { useState } from 'react';
