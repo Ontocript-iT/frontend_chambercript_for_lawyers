@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { authService } from '../../../../_services/auth/authService';
 import { RegisterAdminRequest } from '../../../../models/auth';
-import { User, Mail, Lock, Phone, CreditCard, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react';
+import { User, Mail, Lock, Phone, CreditCard, AlertCircle, CheckCircle2, ArrowRight,MessageSquare } from 'lucide-react';
 
 export default function RegisterForm() {
     // Determine the plan from local storage to show in the UI
@@ -17,12 +17,13 @@ export default function RegisterForm() {
         phone: '',
         nic: '',
         planType: selectedPlan,
+        smsPlan: 'NONE',
     });
     
     const [status, setStatus] = useState({ error: '', success: '' });
     const [isLoading, setIsLoading] = useState(false);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
@@ -177,6 +178,28 @@ export default function RegisterForm() {
                                 placeholder="ID Number"
                             />
                         </div>
+                    </div>
+                </div>
+
+                {/* SMS Plan Selection */}
+                <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">SMS Plan</label>
+                    <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <MessageSquare className="h-4 w-4 text-slate-400" />
+                        </div>
+                        <select 
+                            name="smsPlan" 
+                            required 
+                            value={formData.smsPlan}
+                            onChange={handleChange} 
+                            className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition-all text-slate-900 bg-slate-50/50 focus:bg-white text-sm appearance-none"
+                        >
+                            <option value="NONE">None</option>
+                            <option value="BASIC">Basic</option>
+                            <option value="PRO">Pro</option>
+                            <option value="UNLIMITED">Unlimited</option>
+                        </select>
                     </div>
                 </div>
 
