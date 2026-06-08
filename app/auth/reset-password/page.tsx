@@ -14,11 +14,9 @@ const ResetPasswordForm = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [token, setToken] = useState<string | null>(null);
 
-    // UI States matching the reference structure
     const [isResetLoading, setIsResetLoading] = useState(false);
     const [resetMessage, setResetMessage] = useState({ type: '', text: '' });
 
-    // Extract token using Next.js useSearchParams
     useEffect(() => {
         const extractedToken = searchParams.get('token');
 
@@ -41,7 +39,6 @@ const ResetPasswordForm = () => {
         setIsResetLoading(true);
         setResetMessage({ type: '', text: '' });
 
-        // Validation
         if (!token) {
             setResetMessage({ type: 'error', text: 'Missing token. Cannot reset password.' });
             setIsResetLoading(false);
@@ -58,7 +55,6 @@ const ResetPasswordForm = () => {
             return;
         }
 
-        // API Call
         try {
             await authService.resetPassword(token, newPassword);
             setResetMessage({ 
@@ -68,9 +64,7 @@ const ResetPasswordForm = () => {
             setNewPassword('');
             setConfirmPassword('');
             
-            // Redirect to login after a 3-second delay
             setTimeout(() => {
-                // Adjust this route if your login page is somewhere else (e.g., '/login')
                 router.replace('/'); 
             }, 3000);
 
@@ -169,7 +163,6 @@ const ResetPasswordForm = () => {
     );
 };
 
-// Wrapper Component with Suspense boundary to handle Next.js useSearchParams requirements
 export default function ResetPasswordPage() {
     return (
         <div className="flex h-screen w-full items-center justify-center bg-white p-6">
