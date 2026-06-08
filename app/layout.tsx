@@ -15,6 +15,12 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "ChamberCript for Lawyers",
   description: "Legal case management software designed for law firms to streamline operations, manage cases, and enhance productivity.",
+  icons: {
+    icon: '/icon.png', // Path to your logo in the public folder
+    // You can also add shortcuts or apple-touch-icons here:
+    // shortcut: '/shortcut-icon.png',
+    // apple: '/apple-icon.png',
+  },
 };
 
 export default function RootLayout({
