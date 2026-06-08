@@ -42,5 +42,24 @@ export const authService = {
         }
 
         return response.json();
-    }
+    },
+
+    resetPassword: async (token: string, newPassword: string): Promise<any> => {
+        const response = await fetch(`${BASE_URL}/reset-password`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ token, newPassword }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || 'Password reset failed. Please try again.');
+        }
+
+        return response.json();
+    },
+
+    
 };
