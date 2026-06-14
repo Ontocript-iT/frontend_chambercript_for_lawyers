@@ -79,5 +79,19 @@ export const subscriptionService = {
         }
 
         return response.json();
+    },
+
+    getRemainingSms: async () => {
+        const response = await fetch(`${BASE_URL}/remainingSms`, {
+            method: 'GET',
+            headers: getHeaders(),
+        });
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => null);
+            throw new Error(errData?.message || 'Failed to fetch remaining SMS count.');
+        }
+
+        return response.json();
     }
 };
