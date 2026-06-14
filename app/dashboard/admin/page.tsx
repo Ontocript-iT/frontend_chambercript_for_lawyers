@@ -7,8 +7,10 @@ import { AuditLog } from '../../../models/auditLog';
 import { User } from '../../../models/user';
 import { 
     Activity, UserPlus, Clock, ShieldAlert, ArrowRight, 
-    Calendar as CalendarIcon, ChevronLeft, ChevronRight, X 
+    Calendar as CalendarIcon, ChevronLeft, ChevronRight, X ,MessageSquare
 } from 'lucide-react';
+import { subscriptionService } from '@/_services/subscription/subscriptionService';
+
 
 interface FutureCase {
     id: number;
@@ -30,6 +32,8 @@ export default function AdminDashboard() {
     const [futureCasesList, setFutureCasesList] = useState<FutureCase[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
+
+    const [remainingSms, setRemainingSms] = useState<number | null>(null);
     
     // Calendar State
     const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -81,8 +85,20 @@ export default function AdminDashboard() {
             }
         };
 
+        const fetchSmsQuota = async () => {
+            try {
+                const response = await subscriptionService.getRemainingSms();
+                if (response && response.data !== undefined) {
+                    setRemainingSms(response.data);
+                }
+            } catch (err) {
+                console.error("Failed to fetch remaining SMS:", err);
+            }
+        };
+
         fetchDashboardData();
         fetchFutureCases();
+        fetchSmsQuota();
     }, []);
 
     const formatTime = (isoString: string) => {
@@ -122,14 +138,29 @@ export default function AdminDashboard() {
     };
 
     return (
-        <div className="space-y-8 max-w-7xl relative">
-            <div>   
-                <h1 className="text-3xl font-serif font-bold text-slate-900">
-                    Administrator Overview
-                </h1>
-                <p className="text-slate-600 mt-2">
-                    Welcome to the central command for Justice & Associates. From here you can manage users, oversee firm-wide metrics, and configure system settings.
-                </p>
+       <div className="space-y-8 max-w-7xl relative">
+            {/* 5. Restructured the header to flex so the label sits on the right */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"> 
+                <div>   
+                    <h1 className="text-3xl font-serif font-bold text-slate-900">
+                        Administrator Overview
+                    </h1>
+                    <p className="text-slate-600 mt-2 max-w-2xl">
+                        Welcome to the central command for Justice & Associates. From here you can manage users, oversee firm-wide metrics, and configure system settings.
+                    </p>
+                </div>
+
+                {/* 6. Dynamic SMS Label */}
+                {remainingSms !== null && (
+                    <div className={`flex items-center gap-2 px-4 py-2 rounded-full border shadow-sm font-bold text-sm transition-colors shrink-0 ${
+                        remainingSms < 10 
+                            ? 'bg-red-50 text-red-700 border-red-200' 
+                            : 'bg-blue-50 text-blue-700 border-blue-200'
+                    }`}>
+                        <MessageSquare className="w-4 h-4" />
+                        <span>SMS Available: {remainingSms}</span>
+                    </div>
+                )}
             </div>
             
             {/* Top Stat Cards */}

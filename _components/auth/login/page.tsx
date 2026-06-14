@@ -3,13 +3,15 @@
 import { useState } from 'react';
 import { authService } from '../../../_services/auth/authService';
 import { useRouter } from 'next/navigation';
-import { Mail, Lock, AlertCircle, ArrowRight } from 'lucide-react';
+import { Mail, Lock, AlertCircle, ArrowRight,AlertTriangle,X } from 'lucide-react';
 
 export default function LoginForm() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [warning, setWarning] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [showWarningModal, setShowWarningModal] = useState(false);
 
     const router = useRouter();
 
@@ -21,12 +23,24 @@ export default function LoginForm() {
         try {
             const res = await authService.login(email, password);
             console.log('Login successful:', res.message);
-            router.push('/dashboard');
+     if (res.isSendSms === false) { 
+                setShowWarningModal(true);
+                setIsLoading(false);
+            } else {
+                router.push('/dashboard');
+            }
         } catch (err: any) {
             setError(err.message || 'Invalid login credentials. Please try again.');
         } finally {
             setIsLoading(false);
         }
+    };
+
+
+    const handleProceedToDashboard = () => {
+        setShowWarningModal(false);
+        setIsLoading(true);
+        router.push('/dashboard/admin/subscription');
     };
 
     return (
@@ -44,7 +58,7 @@ export default function LoginForm() {
                     <span className="leading-relaxed">{error}</span>
                 </div>
             )}
-            
+       
             <form onSubmit={handleLogin} className="space-y-5">
                 <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email Address</label>
@@ -95,6 +109,50 @@ export default function LoginForm() {
                     )}
                 </button>
             </form>
+{/* Warning Modal Overlay */}
+            {showWarningModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+                        
+                        {/* Modal Header */}
+                        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                            <div className="flex items-center gap-2 text-yellow-600">
+                                <AlertTriangle className="w-5 h-5" />
+                                <h3 className="font-semibold text-slate-900">Action Required</h3>
+                            </div>
+                            <button 
+                                onClick={handleProceedToDashboard}
+                                className="text-slate-400 hover:text-slate-600 transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="px-6 py-6">
+                            <p className="text-slate-600 text-sm leading-relaxed">
+                                Your SMS quota is over. Please update your plan to continue sending SMS messages to your clients. 
+                            </p>
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+                            <button
+                                onClick={handleProceedToDashboard}
+                                className="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleProceedToDashboard}
+                                className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                            >
+                                Continue to Update Plan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
