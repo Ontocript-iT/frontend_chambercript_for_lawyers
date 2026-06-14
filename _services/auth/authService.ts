@@ -21,6 +21,7 @@ export const authService = {
         if (typeof window !== 'undefined' && data.token) {
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));
+            localStorage.setItem('isSendSms', data.isSendSms.toString());
             localStorage.setItem('lawFirmCode', data.user.lawFirmCode);
             localStorage.setItem('isPaymentCompleted', data.user.isPaymentCompleted.toString());
         }

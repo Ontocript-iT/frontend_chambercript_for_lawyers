@@ -14,7 +14,7 @@ export interface LoginResponse {
     status: number;
     token: string;
     isPaymentCompleted: boolean;
-  
+    isSendSms: boolean;
 }
 
 export interface RegisterAdminRequest {

@@ -5,7 +5,7 @@ import {
     Check, Zap, Shield, Loader2, AlertCircle, 
     MessageSquare, X, Info, ChevronRight, HardDrive, Users
 } from 'lucide-react';
-import { subscriptionService,UpdatePlanPayload } from '@/_services/subscription/subscriptionService';
+import { subscriptionService, UpdatePlanPayload } from '@/_services/subscription/subscriptionService';
 
 interface CurrentPlanResponse {
     data?: {
@@ -32,6 +32,7 @@ export default function SubscriptionPage() {
     
     const [currentSmsPlan, setCurrentSmsPlan] = useState<string | null>(null);
     const [smsQuota, setSmsQuota] = useState<number | null>(null);
+    const [remainingSms, setRemainingSms] = useState<number | null>(null); // 1. Add state for remaining SMS
 
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [isSubmitting, setIsSubmitting] = useState<string | null>(null);
@@ -52,7 +53,6 @@ export default function SubscriptionPage() {
         setIsLoading(true);
         setError('');
         try {
-            // Using the Service
             const data = await subscriptionService.getCurrentSubscription();
 
             if (data) {
@@ -77,7 +77,6 @@ export default function SubscriptionPage() {
                     setSmsQuota(fetchedSmsQuota || 0);
                 }
             } else {
-                // Returns null on 404 (no plan yet)
                 setCurrentPlan(null);
                 setHasExistingPlan(false);
                 setCurrentSmsPlan(null);
@@ -90,10 +89,22 @@ export default function SubscriptionPage() {
         }
     };
 
+ 
+ const fetchRemainingSms = async () => {
+        try {
+            const response = await subscriptionService.getRemainingSms();
+            if (response && response.data !== undefined) {
+                setRemainingSms(response.data);
+            }
+        } catch (err) {
+            console.error('Failed to fetch remaining SMS count:', err);
+        }
+    };
+
     useEffect(() => {
         fetchCurrentPlan();
+        fetchRemainingSms(); 
     }, []);
- 
 
     const initiateSelectPlan = (planType: string) => setConfirmModal({ isOpen: true, type: 'PLATFORM', targetPlan: planType });
     const initiateUpdateSmsPlan = (smsPlan: string) => setConfirmModal({ isOpen: true, type: 'SMS', targetPlan: smsPlan });
@@ -107,7 +118,7 @@ export default function SubscriptionPage() {
         else await handleUpdateSmsPlan(targetPlan);
     };
 
-const handleSelectPlan = async (planType: string) => {
+    const handleSelectPlan = async (planType: string) => {
         setIsSubmitting(planType);
         setError('');
         setSuccessMessage('');
@@ -119,7 +130,6 @@ const handleSelectPlan = async (planType: string) => {
         }
 
         try {
-            // Using the Service based on existence of current plan
             if (hasExistingPlan) {
                 await subscriptionService.updateSubscription(payload);
             } else {
@@ -130,26 +140,27 @@ const handleSelectPlan = async (planType: string) => {
             await fetchCurrentPlan(); 
             setTimeout(() => setSuccessMessage(''), 4000);
         } catch (err: any) {
-            setError(err.message); // Will naturally catch the 400 Downgrade error message mapped in the service
+            setError(err.message);
         } finally {
             setIsSubmitting(null);
         }
     };
 
-const handleUpdateSmsPlan = async (smsPlan: string) => {
+    const handleUpdateSmsPlan = async (smsPlan: string) => {
         setIsSubmittingSms(smsPlan);
         setError('');
         setSuccessMessage('');
 
         try {
-            // Using the Service
             await subscriptionService.updateSmsPlan(smsPlan);
             
             setSuccessMessage(`SMS plan updated to ${smsPlan}!`);
-            await fetchCurrentPlan(); 
+            await fetchCurrentPlan();
+            await fetchRemainingSms(); // Refetch remaining SMS after plan upgrade
+            
             setTimeout(() => setSuccessMessage(''), 4000);
         } catch (err: any) {
-            setError(err.message); // Will naturally catch the 400 Downgrade error message mapped in the service
+            setError(err.message);
         } finally {
             setIsSubmittingSms(null);
         }
@@ -167,7 +178,6 @@ const handleUpdateSmsPlan = async (smsPlan: string) => {
     }
 
     return (
-        // Master container perfectly bounded to viewport height to eliminate scrolling
         <div className="h-[calc(100vh-6rem)] w-full flex flex-col bg-slate-50/50 p-2 lg:p-6 overflow-hidden relative">
             
             {/* Header & Notifications Area (Compact) */}
@@ -180,7 +190,6 @@ const handleUpdateSmsPlan = async (smsPlan: string) => {
                     <p className="text-sm text-slate-500 font-medium">Manage your limits and communication quotas effortlessly.</p>
                 </div>
                 
-                {/* Notification Toasts absolute positioned top right to save space */}
                 <div className="absolute top-4 right-8 z-50 flex flex-col gap-2">
                     {error && (
                         <div className="px-4 py-2 bg-white text-red-600 text-sm font-semibold rounded-full shadow-lg border border-red-100 flex items-center gap-2 animate-in slide-in-from-top-2">
@@ -280,15 +289,20 @@ const handleUpdateSmsPlan = async (smsPlan: string) => {
                 <div className="flex-[2] flex flex-col bg-white border border-slate-200 rounded-3xl p-5 shadow-sm overflow-hidden">
                     <div className="flex justify-between items-center mb-4 shrink-0">
                         <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider">SMS Quota</h2>
-                        <div className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-bold border border-blue-100 flex items-center gap-1">
+                        
+                        {/* 4. Updated Available Badge to show Remaining / Quota */}
+                        <div className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-bold border border-blue-100 flex items-center gap-1.5">
                             <MessageSquare className="w-3 h-3" />
-                            {smsQuota ? smsQuota.toLocaleString() : 0} Available
+                            <span>
+                                {remainingSms !== null ? remainingSms.toLocaleString() : 0} 
+                                <span className="text-blue-400/80 mx-1">/</span> 
+                                {smsQuota ? smsQuota.toLocaleString() : 0} Available
+                            </span>
                         </div>
+
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 flex-1 min-h-0">
-                        
-                        {/* SMS Defaults Map */}
                         {[
                             { key: 'NONE', title: 'Default', quota: '100 / mo', desc: 'Included free limit' },
                             { key: 'BASIC', title: 'Basic', quota: '500 / mo', desc: 'Standard usage' },
