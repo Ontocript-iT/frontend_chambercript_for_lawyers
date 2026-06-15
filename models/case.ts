@@ -8,8 +8,9 @@ export interface CaseRegisterRequest {
     description: string;
     assignedLawyer: string;
     clientId: number;
-    caseTypeId: number;
-    courtId: number;
+    caseTypeId: { id: number };
+    courtId: { id: number };
+    
 }
 
 export interface FolderCreateRequest {
@@ -34,6 +35,7 @@ export interface CaseDetails {
     caseTitle: string;
     description: string;
     assignedLawyer: string;
+    oppositeParty: string;
     filingDate: string;
     status: string;
     caseType: {

@@ -10,6 +10,8 @@ import {
     Calendar as CalendarIcon, ChevronLeft, ChevronRight, X ,MessageSquare
 } from 'lucide-react';
 import { subscriptionService } from '@/_services/subscription/subscriptionService';
+import { caseWorkspaceService } from '@/_services/case/caseWorkspaceService';
+
 
 
 interface FutureCase {
@@ -32,6 +34,8 @@ export default function AdminDashboard() {
     const [futureCasesList, setFutureCasesList] = useState<FutureCase[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
+    const [pendingCasesCount, setPendingCasesCount] = useState<number>(0);
+    const [acceptedCasesCount, setAcceptedCasesCount] = useState<number>(0);
 
     const [remainingSms, setRemainingSms] = useState<number | null>(null);
     
@@ -137,6 +141,45 @@ export default function AdminDashboard() {
         }
     };
 
+    useEffect(() => {
+        const fetchDashboardData = async () => {
+            const storedUser = localStorage.getItem('user');
+            if (!storedUser) return;
+            const user: User = JSON.parse(storedUser);
+
+            if (!user.lawFirmCode) {
+                setError("Law Firm Code missing from user session.");
+                setIsLoading(false);
+                return;
+            }
+
+            try {
+    
+                const result = await adminService.getAuditLogs(user.lawFirmCode, 0, 10);
+                const logsArray = result.data || [];
+                const sortedLogs = logsArray.sort((a: any, b: any) => 
+                    new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+                );
+                setLogs(sortedLogs);
+
+                // --- NEW: Fetch Case Counts ---
+                const pendingRes = await caseWorkspaceService.getCasesByStatus(user.lawFirmCode, 'PENDING_REVIEW', 0, 1);
+                setPendingCasesCount(pendingRes.data?.totalElements || pendingRes.totalItems || 0);
+
+                const acceptedRes = await caseWorkspaceService.getCasesByStatus(user.lawFirmCode, 'ACCEPTED', 0, 1);
+                setAcceptedCasesCount(acceptedRes.data?.totalElements || acceptedRes.totalItems || 0);
+                
+            } catch (err: any) {
+                setError(err.message);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchDashboardData();
+        // ...
+    }, []);
+
     return (
        <div className="space-y-8 max-w-7xl relative">
             {/* 5. Restructured the header to flex so the label sits on the right */}
@@ -164,17 +207,38 @@ export default function AdminDashboard() {
             </div>
             
             {/* Top Stat Cards */}
+          {/* Top Stat Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 border-t-4 border-t-blue-900">
-                    <h3 className="text-sm font-bold tracking-wider uppercase text-slate-500">Active Personnel</h3>
-                    <p className="text-4xl font-bold text-slate-900 mt-2">24</p>
+                
+                {/* Replaced Active Personnel with Pending Cases */}
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 border-t-4 border-t-amber-500 flex flex-col justify-between">
+                    <h3 className="text-sm font-bold tracking-wider uppercase text-slate-500">Pending Cases</h3>
+                    <div className="flex justify-between items-end mt-2">
+                        <p className="text-4xl font-bold text-slate-900">{pendingCasesCount}</p>
+                        <button 
+                            onClick={() => router.push('/dashboard/cases/manage-cases')}
+                            className="text-xs font-bold text-amber-600 hover:text-amber-800 flex items-center gap-1 transition-colors bg-amber-50 px-2 py-1 rounded"
+                        >
+                            Review <ArrowRight className="w-3 h-3" />
+                        </button>
+                    </div>
                 </div>
                 
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 border-t-4 border-t-amber-500">
-                    <h3 className="text-sm font-bold tracking-wider uppercase text-slate-500">Open Cases</h3>
-                    <p className="text-4xl font-bold text-slate-900 mt-2">142</p>
+                {/* Replaced Open Cases with Accepted Cases */}
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 border-t-4 border-t-blue-600 flex flex-col justify-between">
+                    <h3 className="text-sm font-bold tracking-wider uppercase text-slate-500">Accepted Cases</h3>
+                    <div className="flex justify-between items-end mt-2">
+                        <p className="text-4xl font-bold text-slate-900">{acceptedCasesCount}</p>
+                        <button 
+                            onClick={() => router.push('/dashboard/cases/manage-cases')}
+                            className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 transition-colors bg-blue-50 px-2 py-1 rounded"
+                        >
+                            Manage <ArrowRight className="w-3 h-3" />
+                        </button>
+                    </div>
                 </div>
 
+                {/* Existing Future Cases Card */}
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 border-t-4 border-t-purple-600 flex flex-col justify-between">
                     <h3 className="text-sm font-bold tracking-wider uppercase text-slate-500">Future Cases</h3>
                     <div className="flex justify-between items-end mt-2">
@@ -188,6 +252,7 @@ export default function AdminDashboard() {
                     </div>
                 </div>
 
+                {/* Existing System Status Card */}
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 border-t-4 border-t-emerald-600">
                     <h3 className="text-sm font-bold tracking-wider uppercase text-slate-500">System Status</h3>
                     <p className="text-xl font-bold text-emerald-600 mt-3 flex items-center gap-2">

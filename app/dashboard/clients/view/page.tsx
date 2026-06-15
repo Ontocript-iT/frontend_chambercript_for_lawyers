@@ -7,8 +7,9 @@ import { Client } from '../../../../models/client';
 import { User } from '../../../../models/user';
 import { CaseDetails } from '../../../../models/case';
 import { useRouter } from 'next/navigation';
-import { Search, Edit, Trash2, Mail, Phone, MapPin, Calendar, ShieldAlert, Briefcase, X, AlertCircle, FolderOpen, Gavel, ClipboardList, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Edit, Trash2, Mail, Phone, MapPin, Calendar, ShieldAlert, Briefcase, X, AlertCircle, FolderOpen, Gavel, ClipboardList, CheckCircle2, ChevronLeft, ChevronRight, Save, ChevronDown ,Lock} from 'lucide-react';
 import { adminService } from '@/_services/admin/adminService';
+import { caseWorkspaceService } from '@/_services/case/caseWorkspaceService';
 
 interface Employee {
     id: number;
@@ -22,7 +23,10 @@ export default function ViewClientsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
     const [adminId, setAdminId] = useState<number>(0); 
-
+    const [caseTypes, setCaseTypes] = useState<any[]>([]);
+    const [courts, setCourts] = useState<any[]>([]);
+    const [isClosingCase, setIsClosingCase] = useState(false);
+    
     // --- Search State ---
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -38,6 +42,29 @@ export default function ViewClientsPage() {
     const [activeClientId, setActiveClientId] = useState<number | null>(null);
     const [isCaseLoading, setIsCaseLoading] = useState(false);
     const [caseError, setCaseError] = useState('');
+
+    // --- Case Update State ---
+    const [isEditingCase, setIsEditingCase] = useState(false);
+    const [isUpdatingCase, setIsUpdatingCase] = useState(false);
+    const [updateForm, setUpdateForm] = useState({
+        caseNumber: '',
+        caseTitle: '',
+        oppositeParty: '',
+        filingDate: '',
+        description: '',
+        assignedLawyer: '',
+        clientId: 0,
+        caseTypeId: 0,
+        courtId: 0,
+        lawFirmCode: ''
+    });
+
+    // --- Searchable Dropdown States ---
+    const [caseTypeSearch, setCaseTypeSearch] = useState('');
+    const [isCaseTypeDropdownOpen, setIsCaseTypeDropdownOpen] = useState(false);
+    const [courtSearch, setCourtSearch] = useState('');
+    const [isCourtDropdownOpen, setIsCourtDropdownOpen] = useState(false);
+    const [isCloseConfirmModalOpen, setIsCloseConfirmModalOpen] = useState(false);
 
     // --- Assign Task Modal State ---
     const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
@@ -67,11 +94,9 @@ export default function ViewClientsPage() {
                 let clientsList = [];
                 let count = 0;
 
-                // Alternate between search logic and pagination logic based on text inputs
                 if (searchQuery.trim() !== '') {
                     const response = await clientService.searchClientByNin(searchQuery.trim());
                     
-                    // Flexibly handle if backend sends raw array, matching wrapper schema, or single item object
                     if (response && response.data) {
                         clientsList = Array.isArray(response.data) ? response.data : [response.data];
                         count = response.totalItems ?? clientsList.length;
@@ -83,7 +108,6 @@ export default function ViewClientsPage() {
                         count = 1;
                     }
                 } else {
-                    // Regular paginated list fetch
                     const response = await clientService.getClientsByLawFirm(user.lawFirmCode, currentPage, pageSize);
                     clientsList = response.data || [];
                     count = response.totalItems ?? 0;
@@ -96,7 +120,6 @@ export default function ViewClientsPage() {
                 setClients(sortedClients);
                 totalItems !== count && setTotalItems(count);
             } catch (err: any) {
-                // If search yields no result, clear out items rather than crashing table container
                 if (searchQuery.trim() !== '') {
                     setClients([]);
                     setTotalItems(0);
@@ -108,7 +131,6 @@ export default function ViewClientsPage() {
             }
         };
 
-        // 400ms typing debounce to avoid hammering database resources
         const delayDebounceFn = setTimeout(() => {
             fetchClients();
         }, searchQuery ? 400 : 0);
@@ -116,7 +138,54 @@ export default function ViewClientsPage() {
         return () => clearTimeout(delayDebounceFn);
     }, [currentPage, pageSize, searchQuery]); 
 
-    // --- Handlers ---
+    // Fetch dropdown data on mount
+    useEffect(() => {
+        const fetchDropdownData = async () => {
+            try {
+                const typesRes = await caseWorkspaceService.getCaseTypes();
+                if (typesRes?.data) setCaseTypes(typesRes.data);
+
+                const courtsRes = await caseWorkspaceService.getAllCourts();
+                if (courtsRes?.data) setCourts(courtsRes.data);
+            } catch (err) {
+                console.error("Failed to load case types or courts for the dropdowns.", err);
+            }
+        };
+
+        fetchDropdownData();
+    }, []);
+
+
+ // Opens the custom confirmation modal
+    const handleCloseCaseToggle = () => {
+        if (!selectedCase?.id) return;
+        setIsCloseConfirmModalOpen(true);
+        setCaseError('');
+    };
+
+    // Executes the actual API call when confirmed
+    const confirmCloseCase = async () => {
+        if (!selectedCase?.id) return;
+        
+        setIsClosingCase(true);
+        setCaseError('');
+
+        try {
+            await caseWorkspaceService.updateCaseStatus(selectedCase.id, 'CLOSED');
+            
+            setSelectedCase({
+                ...selectedCase,
+                status: 'CLOSED'
+            });
+            
+            // Close the confirmation modal on success
+            setIsCloseConfirmModalOpen(false);
+        } catch (err: any) {
+            setCaseError(err.message || "Failed to close the case.");
+        } finally {
+            setIsClosingCase(false);
+        }
+    };
     const handleQuickViewFolders = async (clientId: number) => {
         try {
             const caseData = await clientService.getCaseByClientId(clientId);
@@ -138,6 +207,7 @@ export default function ViewClientsPage() {
 
     const handleViewCase = async (clientId: number, clientName: string) => {
         setIsModalOpen(true);
+        setIsEditingCase(false);
         setIsCaseLoading(true);
         setCaseError('');
         setSelectedCase(null);
@@ -161,6 +231,74 @@ export default function ViewClientsPage() {
         setIsModalOpen(false);
         setSelectedCase(null);
         setActiveClientId(null);
+        setIsEditingCase(false);
+    };
+
+    // --- Case Update Handlers ---
+    const handleEnableEdit = () => {
+        if (!selectedCase) return;
+        const storedUser = localStorage.getItem('user');
+        const user: User = storedUser ? JSON.parse(storedUser) : null;
+
+        setUpdateForm({
+            caseNumber: selectedCase.caseNumber || '',
+            caseTitle: selectedCase.caseTitle || '',
+            oppositeParty: (selectedCase as any).oppositeParty || '',
+            filingDate: selectedCase.filingDate || '',
+            description: selectedCase.description || '',
+            assignedLawyer: selectedCase.assignedLawyer || '',
+            clientId: activeClientId || 0,
+            caseTypeId: selectedCase.caseType?.id || 0,
+            courtId: selectedCase.court?.id || 0,
+            lawFirmCode: user?.lawFirmCode || ''
+        });
+        setIsEditingCase(true);
+    };
+
+ const handleUpdateCaseSubmit = async () => {
+        if (!selectedCase) return;
+        setIsUpdatingCase(true);
+        setCaseError('');
+        
+        try {
+            // STRICT NESTED PAYLOAD: No flat numbers allowed for relational data
+const payloadToBackend = {
+    caseNumber: updateForm.caseNumber,
+    caseTitle: updateForm.caseTitle,
+    oppositeParty: updateForm.oppositeParty,
+    filingDate: updateForm.filingDate,
+    description: updateForm.description,
+    assignedLawyer: updateForm.assignedLawyer,
+    lawFirmCode: updateForm.lawFirmCode,
+  
+    clientId: updateForm.clientId, 
+    
+    caseTypeId: { id: updateForm.caseTypeId }, 
+
+    courtId: { id: updateForm.courtId } 
+};
+
+console.log("Law Firm Code being sent:", updateForm.lawFirmCode);
+console.log("Payload length:", updateForm.lawFirmCode.length);
+
+            await caseWorkspaceService.updateCase(selectedCase.id, payloadToBackend);
+
+            setSelectedCase({
+                ...selectedCase,
+                caseNumber: updateForm.caseNumber,
+                caseTitle: updateForm.caseTitle,
+                filingDate: updateForm.filingDate,
+                description: updateForm.description,
+                assignedLawyer: updateForm.assignedLawyer,
+                caseType: caseTypes.find(t => t.id === updateForm.caseTypeId) || selectedCase.caseType,
+                court: courts.find(c => c.id === updateForm.courtId) || selectedCase.court
+            });
+            setIsEditingCase(false);
+        } catch (err: any) {
+            setCaseError(err.message || "An error occurred while updating.");
+        } finally {
+            setIsUpdatingCase(false);
+        }
     };
 
     // --- Task Delegation Handlers ---
@@ -232,8 +370,36 @@ export default function ViewClientsPage() {
         setCurrentPage(0); 
     };
 
+    const handleNavigateToHearing = async (clientId: number) => {
+    try {
+        // Fetch the active case for this client first
+        const caseData = await clientService.getCaseByClientId(clientId);
+
+        console.log("Fetched case data for hearing navigation:", clientId);
+        
+        if (caseData && caseData.id) {
+            // Navigate using the retrieved case.id
+            router.push(`/dashboard/cases/${caseData.id}/hearings`);
+        } else {
+            alert("No active case found for this client.");
+        }
+    } catch (err) {
+        console.error("Error fetching case for hearing navigation:", err);
+        alert("Failed to load case details. Please try again.");
+    }
+};
+
+    // Derived states for filtered dropdowns
+    const filteredCaseTypes = caseTypes.filter(type => 
+        type.typeName.toLowerCase().includes(caseTypeSearch.toLowerCase())
+    );
+    const filteredCourts = courts.filter(court => 
+        court.courtName.toLowerCase().includes(courtSearch.toLowerCase()) || 
+        court.location.toLowerCase().includes(courtSearch.toLowerCase())
+    );
+
     if (isLoading && clients.length === 0) return <div className="flex justify-center py-16"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600"></div></div>;
-    if (error) return <div className="flex flex-col items-center justify-center py-16 text-center"><ShieldAlert className="w-12 h-12 text-red-500 mb-4" /><h3 className="text-xl font-bold">Cannot Load Clients</h3><p>{error}</p></div>;
+    if (error) return <div className="flex flex-col items-center justify-center py-16 text-center"><ShieldAlert className="w-12 h-12 text-red-500 mb-4" /><h3 className="text-xl font-bold">No Clients Found</h3><p>{error}</p></div>;
 
     return (
         <div>
@@ -246,7 +412,7 @@ export default function ViewClientsPage() {
                         value={searchQuery}
                         onChange={(e) => {
                             setSearchQuery(e.target.value);
-                            setCurrentPage(0); // Safely bounce cursor context back to initial page view context
+                            setCurrentPage(0);
                         }}
                         placeholder="Search by client NIC number..." 
                         className="w-full pl-9 pr-4 py-2 text-sm border border-slate-300 text-slate-500 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none" 
@@ -290,25 +456,27 @@ export default function ViewClientsPage() {
                                         <div className="flex items-start text-sm text-slate-500"><MapPin className="w-3.5 h-3.5 text-slate-400 mr-2 flex-shrink-0 mt-0.5" /> <span className="truncate max-w-[180px] text-xs">{client.address}</span></div>
                                     </td>
                                     <td className="py-4 px-6 text-right space-x-2 flex justify-end">
-        
-                                        {/* 1. Delegate Task Button (ONLY SHOW FOR ADMIN) */}
                                         {userRole === 'ADMIN' && (
                                             <button 
                                                 onClick={() => openAssignTaskModal(client.id)} 
                                                 title="Delegate Task" 
-                                                className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                                className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all opacity-100 group-hover:opacity-100"
                                             >
                                                 <ClipboardList className="w-4 h-4" />
                                             </button>
                                         )}
                                         
-                                        {/* 2. Folders Button */}
-                                        <button onClick={() => handleQuickViewFolders(client.id)} title="View Folders" className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all opacity-0 group-hover:opacity-100">
+                                        <button onClick={() => handleQuickViewFolders(client.id)} title="View Folders" className="p-2 text-slate-400 hover:text-emerald-600  hover:bg-emerald-50 rounded-lg transition-all opacity-100 group-hover:opacity-100">
                                             <FolderOpen className="w-4 h-4" />
                                         </button>
-                                        
-                                        {/* 3. Case Brief Button */}
-                                        <button onClick={() => handleViewCase(client.id, client.name)} title="View Case Brief" className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all opacity-0 group-hover:opacity-100">
+<button 
+    onClick={() => handleNavigateToHearing(client.id)} 
+    title="View Hearings" 
+    className="p-2 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-all opacity-100 group-hover:opacity-100"
+>
+    <Gavel className="w-4 h-4" />
+</button>
+                                        <button onClick={() => handleViewCase(client.id, client.name)} title="View Case Brief" className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all opacity-100 group-hover:opacity-100">
                                             <Briefcase className="w-4 h-4" />
                                         </button>
                                     </td>
@@ -389,8 +557,8 @@ export default function ViewClientsPage() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm text-black font-medium mb-1">Assign To</label>
-                                    <select required value={taskForm.assignedToId} onChange={e => setTaskForm({...taskForm, assignedToId: e.target.value})} className="w-full border p-2 rounded-lg outline-none  text-slate-500 focus:ring-2 focus:ring-blue-500 bg-white">
-                                        <option value="" disabled>Select Employee...</option>
+                                    <select required value={taskForm.assignedToId} onChange={e => setTaskForm({...taskForm, assignedToId: e.target.value})} className="w-full border p-2 rounded-lg outline-none text-slate-500 focus:ring-2 focus:ring-blue-500 bg-white">
+                                        <option value="" disabled>Select Staff...</option>
                                         {employees.map((emp: any) => (
                                             <option key={emp.userId} value={emp.userId}>{emp.name} ({emp.role})</option>
                                         ))}
@@ -418,59 +586,300 @@ export default function ViewClientsPage() {
                 </div>
             )}
 
+            {/* --- Case Overview & Edit Modal --- */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                         <div className="flex justify-between items-center p-6 border-b border-slate-200 bg-slate-50">
-                            <h3 className="text-xl font-serif font-bold text-slate-900 flex items-center gap-2"><Briefcase className="w-5 h-5 text-amber-600" /> Case Overview</h3>
+                            <h3 className="text-xl font-serif font-bold text-slate-900 flex items-center gap-2">
+                                <Briefcase className="w-5 h-5 text-amber-600" /> 
+                                {isEditingCase ? 'Quick Update Case' : 'Case Overview'}
+                            </h3>
                             <button onClick={closeModal} className="text-slate-400 hover:text-slate-600 p-1 rounded-md hover:bg-slate-200"><X className="w-5 h-5" /></button>
                         </div>
                         <div className="p-6 min-h-[300px]">
                             {isCaseLoading ? (
                                 <div className="flex flex-col items-center justify-center h-full py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600 mb-4"></div></div>
                             ) : caseError ? (
-                                <div className="flex flex-col items-center justify-center h-full py-12 text-center"><AlertCircle className="w-10 h-10 text-amber-500 mb-3" /><p className="font-medium">{caseError}</p></div>
+                                <div className="flex flex-col items-center justify-center h-full py-12 text-center"><AlertCircle className="w-10 h-10 text-amber-500 mb-3" /><p className="font-medium text-slate-700">{caseError}</p></div>
                             ) : selectedCase ? (
-                                <div className="space-y-6">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <h4 className="text-lg font-bold text-slate-900">{selectedCase.caseTitle}</h4>
-                                            <p className="text-sm font-mono text-slate-500 mt-1">Case No: {selectedCase.caseNumber}</p>
+                                isEditingCase ? (
+                                    /* Edit Mode Form */
+                                    <div className="space-y-4 relative">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="text-xs font-semibold text-slate-500 uppercase">Case Number</label>
+                                                <input type="text" value={updateForm.caseNumber} onChange={(e) => setUpdateForm({...updateForm, caseNumber: e.target.value})} className="w-full mt-1 border border-slate-300 p-2 rounded-lg outline-none focus:ring-2 text-slate-700 focus:ring-amber-500" />
+                                            </div>
+                                            <div>
+                                                <label className="text-xs font-semibold text-slate-500 uppercase">Case Title</label>
+                                                <input type="text" value={updateForm.caseTitle} onChange={(e) => setUpdateForm({...updateForm, caseTitle: e.target.value})} className="w-full mt-1 border border-slate-300 p-2 rounded-lg outline-none focus:ring-2 text-slate-700 focus:ring-amber-500" />
+                                            </div>
+                                            <div>
+                                                <label className="text-xs font-semibold text-slate-500 uppercase">Opposite Party</label>
+                                                <input type="text" value={updateForm.oppositeParty} onChange={(e) => setUpdateForm({...updateForm, oppositeParty: e.target.value})} className="w-full mt-1 border border-slate-300 p-2 rounded-lg outline-none focus:ring-2 text-slate-700 focus:ring-amber-500" />
+                                            </div>
+                                            <div>
+                                                <label className="text-xs font-semibold text-slate-500 uppercase">Filing Date</label>
+                                                <input type="date" value={updateForm.filingDate} onChange={(e) => setUpdateForm({...updateForm, filingDate: e.target.value})} className="w-full mt-1 border border-slate-300 p-2 rounded-lg outline-none focus:ring-2 text-slate-700 focus:ring-amber-500" />
+                                            </div>
+                                            <div>
+                                                <label className="text-xs font-semibold text-slate-500 uppercase">Assigned Lawyer</label>
+                                                <input type="text" value={updateForm.assignedLawyer} onChange={(e) => setUpdateForm({...updateForm, assignedLawyer: e.target.value})} className="w-full mt-1 border border-slate-300 p-2 rounded-lg outline-none focus:ring-2 text-slate-700 focus:ring-amber-500" />
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-2 relative">
+                                                {/* --- Custom Searchable Case Type Dropdown --- */}
+                                                <div className="relative">
+                                                    <label className="text-xs font-semibold text-slate-500 uppercase">Case Type</label>
+                                                    
+                                                    {/* Invisible backdrop to close dropdowns when clicking outside */}
+                                                    {isCaseTypeDropdownOpen && (
+                                                        <div className="fixed inset-0 z-10" onClick={() => setIsCaseTypeDropdownOpen(false)}></div>
+                                                    )}
+
+                                                    <div 
+                                                        className="w-full mt-1 border border-slate-300 p-2 rounded-lg outline-none focus:ring-2 text-slate-700 focus:ring-amber-500 bg-white cursor-pointer flex justify-between items-center relative z-20"
+                                                        onClick={() => {
+                                                            setIsCaseTypeDropdownOpen(!isCaseTypeDropdownOpen);
+                                                            if (isCourtDropdownOpen) setIsCourtDropdownOpen(false);
+                                                        }}
+                                                    >
+                                                        <span className="truncate pr-2">
+                                                            {caseTypes.find(type => type.id === updateForm.caseTypeId)?.typeName || "Select Case Type..."}
+                                                        </span>
+                                                        <ChevronDown className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                                    </div>
+
+                                                    {isCaseTypeDropdownOpen && (
+                                                        <div className="absolute z-30 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                                                            <div className="sticky top-0 bg-white p-2 border-b border-slate-100">
+                                                                <input 
+                                                                    type="text" 
+                                                                    placeholder="Search case type..."
+                                                                    className="w-full border border-slate-300 rounded-md p-1.5 text-sm outline-none focus:ring-2 focus:ring-amber-500"
+                                                                    value={caseTypeSearch}
+                                                                    onChange={(e) => setCaseTypeSearch(e.target.value)}
+                                                                    onClick={(e) => e.stopPropagation()} 
+                                                                />
+                                                            </div>
+                                                            <div className="py-1">
+                                                                {filteredCaseTypes.length > 0 ? filteredCaseTypes.map((type) => (
+                                                                    <div 
+                                                                        key={type.id} 
+                                                                        className="px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer"
+                                                                        onClick={() => {
+                                                                            setUpdateForm({...updateForm, caseTypeId: type.id});
+                                                                            setIsCaseTypeDropdownOpen(false);
+                                                                            setCaseTypeSearch('');
+                                                                        }}
+                                                                    >
+                                                                        {type.typeName}
+                                                                    </div>
+                                                                )) : (
+                                                                    <div className="px-3 py-2 text-sm text-slate-500 italic">No matches found.</div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* --- Custom Searchable Court Dropdown --- */}
+                                                <div className="relative">
+                                                    <label className="text-xs font-semibold text-slate-500 uppercase">Court</label>
+                                                    
+                                                    {isCourtDropdownOpen && (
+                                                        <div className="fixed inset-0 z-10" onClick={() => setIsCourtDropdownOpen(false)}></div>
+                                                    )}
+
+                                                    <div 
+                                                        className="w-full mt-1 border border-slate-300 p-2 rounded-lg outline-none focus:ring-2 text-slate-700 focus:ring-amber-500 bg-white cursor-pointer flex justify-between items-center relative z-20"
+                                                        onClick={() => {
+                                                            setIsCourtDropdownOpen(!isCourtDropdownOpen);
+                                                            if (isCaseTypeDropdownOpen) setIsCaseTypeDropdownOpen(false);
+                                                        }}
+                                                    >
+                                                        <span className="truncate pr-2">
+                                                            {(() => {
+                                                                const selectedCourt = courts.find(court => court.id === updateForm.courtId);
+                                                                return selectedCourt ? `${selectedCourt.courtName} - ${selectedCourt.location}` : "Select Court...";
+                                                            })()}
+                                                        </span>
+                                                        <ChevronDown className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                                    </div>
+
+                                                    {isCourtDropdownOpen && (
+                                                        <div className="absolute z-30 w-[150%] right-0 sm:w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                                                            <div className="sticky top-0 bg-white p-2 border-b border-slate-100">
+                                                                <input 
+                                                                    type="text" 
+                                                                    placeholder="Search court or location..."
+                                                                    className="w-full border border-slate-300 rounded-md p-1.5 text-sm outline-none focus:ring-2 focus:ring-amber-500"
+                                                                    value={courtSearch}
+                                                                    onChange={(e) => setCourtSearch(e.target.value)}
+                                                                    onClick={(e) => e.stopPropagation()} 
+                                                                />
+                                                            </div>
+                                                            <div className="py-1">
+                                                                {filteredCourts.length > 0 ? filteredCourts.map((court) => (
+                                                                    <div 
+                                                                        key={court.id} 
+                                                                        className="px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer"
+                                                                        onClick={() => {
+                                                                            setUpdateForm({...updateForm, courtId: court.id});
+                                                                            setIsCourtDropdownOpen(false);
+                                                                            setCourtSearch('');
+                                                                        }}
+                                                                    >
+                                                                        <div className="font-medium">{court.courtName}</div>
+                                                                        <div className="text-xs text-slate-500">{court.location}</div>
+                                                                    </div>
+                                                                )) : (
+                                                                    <div className="px-3 py-2 text-sm text-slate-500 italic">No matches found.</div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
-                                        <span className="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-bold uppercase tracking-wider rounded-full">{selectedCase.status.replace('_', ' ')}</span>
+                                        <div>
+                                            <label className="text-xs font-semibold text-slate-500 uppercase">Description</label>
+                                            <textarea rows={3} value={updateForm.description} onChange={(e) => setUpdateForm({...updateForm, description: e.target.value})} className="w-full mt-1 border border-slate-300 p-2 rounded-lg outline-none focus:ring-2 text-slate-700 focus:ring-amber-500"></textarea>
+                                        </div>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-y-4 gap-x-6 bg-slate-50 p-4 rounded-lg border border-slate-100">
-                                        <div><label className="text-xs font-semibold text-slate-500 uppercase">Case Type</label><p className="text-sm font-medium text-slate-700 text-slate-700 mt-0.5">{selectedCase.caseType?.typeName || 'N/A'}</p></div>
-                                        <div><label className="text-xs font-semibold text-slate-500 uppercase">Filing Date</label><p className="text-sm font-medium text-slate-700 mt-0.5">{selectedCase.filingDate}</p></div>
-                                        <div><label className="text-xs font-semibold text-slate-500 uppercase">Assigned Court</label><p className="text-sm font-medium text-slate-700 mt-0.5">{selectedCase.court?.courtName || 'N/A'}</p></div>
-                                        <div><label className="text-xs font-semibold text-slate-500 uppercase">Assigned Lawyer</label><p className="text-sm font-medium text-slate-700 mt-0.5">{selectedCase.assignedLawyer}</p></div>
+                                ) : (
+                                    /* View Mode Content */
+                                    <div className="space-y-6">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <h4 className="text-xl font-bold text-slate-900">{selectedCase.caseTitle}</h4>
+                                                <p className="text-sm font-mono text-slate-500 mt-1">Case No: {selectedCase.caseNumber}</p>
+                                            </div>
+                                            <span className="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-bold uppercase tracking-wider rounded-full">{selectedCase.status.replace('_', ' ')}</span>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-y-4 gap-x-6 bg-slate-50 p-4 rounded-lg border border-slate-100">
+                                            <div><label className="text-xs font-semibold text-slate-500 uppercase">Case Type</label><p className="text-sm font-medium text-slate-700 mt-0.5">{selectedCase.caseType?.typeName || 'N/A'}</p></div>
+                                            <div><label className="text-xs font-semibold text-slate-500 uppercase">Filing Date</label><p className="text-sm font-medium text-slate-700 mt-0.5">{selectedCase.filingDate}</p></div>
+                                            <div><label className="text-xs font-semibold text-slate-500 uppercase">Assigned Court</label><p className="text-sm font-medium text-slate-700 mt-0.5">{selectedCase.court?.courtName || 'N/A'}</p></div>
+                                            <div><label className="text-xs font-semibold text-slate-500 uppercase">Assigned Lawyer</label><p className="text-sm font-medium text-slate-700 mt-0.5">{selectedCase.assignedLawyer}</p></div>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-semibold text-slate-500 uppercase">Description / Overview</label>
+                                            <p className="text-sm text-slate-700 mt-1.5 leading-relaxed bg-white border border-slate-200 p-4 rounded-lg">{selectedCase.description}</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label className="text-xs font-semibold text-slate-500 uppercase">Description / Overview</label>
-                                        <p className="text-sm text-slate-700 mt-1.5 leading-relaxed bg-white border border-slate-200 p-3 rounded-lg">{selectedCase.description}</p>
-                                    </div>
-                                </div>
+                                )
                             ) : null}
                         </div>
-                        <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-end gap-3">
-                            {selectedCase?.id && activeClientId && (
-                                <button 
-                                    onClick={() => handleNavigateToFolders(activeClientId, selectedCase.id)}
-                                    className="px-5 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2"
-                                >
-                                    <FolderOpen className="w-4 h-4" /> Open Case Folders
-                                </button>
-                            )}
+{/* Modal Footer Controls */}
+                        <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-between items-center gap-3">
+                            <div className="flex gap-2">
+                                {!isEditingCase && selectedCase?.id && activeClientId && (
+                                    <>
+                                        <button 
+                                            onClick={() => handleNavigateToFolders(activeClientId, selectedCase.id)}
+                                            className="px-5 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2"
+                                        >
+                                            <FolderOpen className="w-4 h-4" /> Folders
+                                        </button>
+                                        <button 
+                                            onClick={() => router.push(`/dashboard/cases/${selectedCase.id}/hearings`)}
+                                            className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                                        >
+                                            <Gavel className="w-4 h-4" /> Hearings
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                            
+                            <div className="flex gap-2">
+                                {isEditingCase ? (
+                                    <>
+                                        <button onClick={() => setIsEditingCase(false)} className="px-6 py-2 bg-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-300 transition-colors">
+                                            Cancel
+                                        </button>
+                                        <button onClick={handleUpdateCaseSubmit} disabled={isUpdatingCase} className="px-6 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 transition-colors flex items-center gap-2 disabled:opacity-50">
+                                            <Save className="w-4 h-4" /> {isUpdatingCase ? 'Saving...' : 'Save Changes'}
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        {/* NEW: Close Case Button (Hidden if already CLOSED) */}
+                                        {selectedCase?.id && selectedCase.status !== 'CLOSED' && (
+                                            <button 
+                                                onClick={handleCloseCaseToggle} 
+                                                disabled={isClosingCase}
+                                                className="px-6 py-2 bg-red-100 text-red-700 text-sm font-medium rounded-lg hover:bg-red-200 transition-colors flex items-center gap-2 disabled:opacity-50"
+                                            >
+                                                {isClosingCase ? (
+                                                    <div className="w-4 h-4 border-2 border-t-transparent border-red-700 rounded-full animate-spin"></div>
+                                                ) : (
+                                                    <Lock className="w-4 h-4" />
+                                                )}
+                                                Close Case
+                                            </button>
+                                        )}
 
-                            {selectedCase?.id && (
-                                <button 
-                                    onClick={() => router.push(`/dashboard/cases/${selectedCase.id}/hearings`)}
-                                    className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-                                >
-                                    <Gavel className="w-4 h-4" /> Manage Hearings
-                                </button>
+                                        {/* Existing Quick Update and Close Buttons */}
+                                        {selectedCase?.id && (
+                                            <button onClick={handleEnableEdit} className="px-6 py-2 bg-amber-100 text-amber-700 text-sm font-medium rounded-lg hover:bg-amber-200 transition-colors flex items-center gap-2">
+                                                <Edit className="w-4 h-4" /> Quick Update
+                                            </button>
+                                        )}
+                                        <button onClick={closeModal} className="px-6 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors">
+                                            Close
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* --- Close Case Confirmation Modal --- */}
+            {isCloseConfirmModalOpen && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="flex justify-between items-center p-6 border-b border-slate-200 bg-red-50">
+                            <h3 className="text-lg font-bold text-red-900 flex items-center gap-2">
+                                <ShieldAlert className="w-5 h-5 text-red-600" />
+                                Confirm Case Closure
+                            </h3>
+                            <button onClick={() => setIsCloseConfirmModalOpen(false)} className="text-red-400 hover:text-red-600 p-1 rounded-md hover:bg-red-100">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-6">
+                            <p className="text-slate-800 font-medium mb-2">Are you sure you want to mark this case as CLOSED?</p>
+                            <p className="text-sm text-slate-500 mb-6">This action will lock the case status. You will still be able to view the case details and associated documents.</p>
+                            
+                            {caseError && (
+                                <div className="mb-4 p-3 bg-red-50 text-red-700 border border-red-200 rounded-lg text-sm font-medium">
+                                    {caseError}
+                                </div>
                             )}
-                            <button onClick={closeModal} className="px-6 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800">Close</button>
+                            
+                            <div className="flex justify-end gap-3">
+                                <button 
+                                    onClick={() => setIsCloseConfirmModalOpen(false)}
+                                    className="px-5 py-2 bg-slate-100 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-200 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    onClick={confirmCloseCase}
+                                    disabled={isClosingCase}
+                                    className="px-5 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+                                >
+                                    {isClosingCase ? (
+                                        <div className="w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin"></div>
+                                    ) : (
+                                        <Lock className="w-4 h-4" />
+                                    )}
+                                    Yes, Close Case
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
