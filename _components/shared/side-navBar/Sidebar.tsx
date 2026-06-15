@@ -37,7 +37,7 @@ const NAV_GROUPS = [
             { name: 'Client Management', href: '/dashboard/clients/view', roles: ['ADMIN', 'JUNIOR_LAWYER', 'CLERK'], icon: Users },            
             { name: 'Case Register', href: '/dashboard/cases/register', roles: ['ADMIN', 'JUNIOR_LAWYER', 'CLERK'], icon: Briefcase },
             { name: 'Task Center', href: '/dashboard/tasks', roles: ['ADMIN', 'MANAGER', 'CLERK', 'JUNIOR_LAWYER'], icon: CheckSquare },
-            { name: 'Reports', href: '/dashboard/reports', roles: ['ADMIN', 'JUNIOR_LAWYER'], icon: FileText },
+              { name: 'Case Management', href: '/dashboard/cases/manage-cases', roles: ['ADMIN'], icon: Briefcase },
         ]
     },
     {
@@ -128,8 +128,7 @@ export default function Sidebar() {
     if (!user) return null;
 
     return (
-        <aside className="w-72 h-screen flex flex-col bg-slate-950 text-slate-300 border-r border-slate-800/60 font-sans selection:bg-amber-500/30">
-            {/* Header / Brand Area */}
+<aside className="sticky top-0 w-72 h-screen flex flex-col bg-slate-950 text-slate-300 border-r border-slate-800/60 font-sans selection:bg-amber-500/30">            {/* Header / Brand Area */}
             <div className="h-20 flex items-center px-6 border-b border-slate-800/60 bg-slate-950/50 backdrop-blur-md">
                 <div className="flex items-center gap-3">
                     <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 shadow-lg shadow-amber-900/20">
