@@ -274,20 +274,26 @@ export default function ClientFoldersPage() {
                 ) : (
                     <div className="p-6 sm:p-8">
                         {/* Folders Grid */}
-                        {currentView.subFolders.length > 0 && (
+                      {currentView.subFolders.length > 0 && (
                             <div className="mb-10">
                                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-200 pb-2">Folders</h3>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                
+                                {/* Changed from grid to flex-col space-y-3 for vertical stacking */}
+                                <div className="flex flex-col space-y-3">
                                     {currentView.subFolders.map(folder => (
-                                        <div key={folder.id} className="flex items-center justify-between p-2 pl-3 bg-white border border-slate-200 rounded-xl hover:border-blue-300 hover:shadow-md transition-all group">
+                                        <div key={folder.id} className="flex items-center justify-between p-3 sm:p-4 bg-white border border-slate-200 rounded-xl hover:border-blue-300 hover:shadow-md transition-all group">
                                             
                                             {/* Clickable Area to navigate INTO the folder */}
                                             <button 
                                                 onClick={() => handleFolderClick(folder.id, folder.name)} 
-                                                className="flex items-center flex-1 min-w-0 text-left py-2 outline-none"
+                                                className="flex items-center flex-1 min-w-0 text-left outline-none"
                                             >
-                                                <FolderIcon className="w-8 h-8 text-blue-500 mr-3 flex-shrink-0 group-hover:scale-110 transition-transform duration-300" fill="currentColor" fillOpacity={0.15} />
-                                                <span className="font-medium text-slate-800 group-hover:text-blue-700 truncate pr-2">{folder.name}</span>
+                                                <FolderIcon className="w-8 h-8 text-blue-500 mr-4 flex-shrink-0 group-hover:scale-110 transition-transform duration-300" fill="currentColor" fillOpacity={0.15} />
+                                                
+                                                {/* Removed 'truncate' and added 'break-words' to show the full name */}
+                                                <span className="font-medium text-slate-800 group-hover:text-blue-700 break-words pr-4 w-full">
+                                                    {folder.name}
+                                                </span>
                                             </button>
 
                                             {/* Actions Area (Edit / Delete) */}
@@ -299,13 +305,13 @@ export default function ClientFoldersPage() {
                                                 >
                                                     <Edit className="w-4 h-4" />
                                                 </button>
-                                              <button 
-    onClick={() => handleDeleteFolderClick(folder.id, folder.name)}
-    className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
-    title="Delete Folder"
->
-    <Trash2 className="w-4 h-4" />
-</button>
+                                                <button 
+                                                    onClick={() => handleDeleteFolderClick(folder.id, folder.name)}
+                                                    className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
+                                                    title="Delete Folder"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
                                             </div>
 
                                         </div>
