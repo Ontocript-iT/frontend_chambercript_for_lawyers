@@ -23,8 +23,7 @@ function VerifyEmailContent() {
 
     const verifyEmail = async () => {
       try {
-        // Automatically call your backend API
-        // You should ideally put 'http://localhost:8080' in your .env.local file as NEXT_PUBLIC_API_URL
+
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
         
         const response = await fetch(`${apiUrl}/api/auth/verify?token=${token}`, {
