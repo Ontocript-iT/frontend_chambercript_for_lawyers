@@ -14,7 +14,7 @@ export const userService = {
         });
 
         if (!response.ok) {
-            throw new Error('Failed to fetch user details');
+            throw new Error('No user details found.');
         }
         return response.json();
     },

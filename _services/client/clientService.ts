@@ -34,7 +34,7 @@ getClientsByLawFirm: async (lawFirmCode: string, page: number = 0, size: number 
 
         if (!response.ok) {
             const err = await response.json().catch(() => null);
-            throw new Error(err?.message || 'Failed to fetch clients.');
+            throw new Error(err?.message || 'No clients.');
         }
 
         return await response.json(); 
@@ -52,7 +52,7 @@ getClientsByLawFirm: async (lawFirmCode: string, page: number = 0, size: number 
 
         if (!response.ok) {
             const err = await response.json().catch(() => null);
-            throw new Error(err?.message || 'Failed to fetch case details for this client.');
+            throw new Error(err?.message || 'No case details for this client.');
         }
         
         const jsonResponse = await response.json();

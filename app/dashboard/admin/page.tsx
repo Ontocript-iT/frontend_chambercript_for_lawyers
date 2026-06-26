@@ -85,7 +85,7 @@ export default function AdminDashboard() {
                     setFutureCasesList(result.data);
                 }
             } catch (err) {
-                console.error("Failed to fetch future cases:", err);
+                console.error("No future cases found:", err);
             }
         };
 
@@ -96,7 +96,7 @@ export default function AdminDashboard() {
                     setRemainingSms(response.data);
                 }
             } catch (err) {
-                console.error("Failed to fetch remaining SMS:", err);
+                console.error("No remaining SMS found:", err);
             }
         };
 

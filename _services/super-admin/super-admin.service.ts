@@ -14,7 +14,7 @@ getAllSubscriptions: async (page: number = 0, size: number = 10): Promise<any> =
         const response = await fetch(`${SUPER_ADMIN_URL}/subscriptions?page=${page}&size=${size}`, { 
             headers: getHeaders() 
         });
-        if (!response.ok) throw new Error('Failed to fetch subscriptions.');
+        if (!response.ok) throw new Error('NO subscriptions found.');
         return await response.json();
     },
 
@@ -35,13 +35,13 @@ getAllSubscriptions: async (page: number = 0, size: number = 10): Promise<any> =
 
     getPaymentHistory: async (lawFirmCode: string): Promise<PaymentRecord[]> => {
         const response = await fetch(`${PAYMENTS_URL}/history/${lawFirmCode}`, { headers: getHeaders() });
-        if (!response.ok) throw new Error('Failed to fetch payment history.');
+        if (!response.ok) throw new Error('No payment history found.');
         return (await response.json()).data;
     },
 
     checkPaymentStatus: async (lawFirmCode: string, year: number, month: number): Promise<PaymentRecord> => {
         const response = await fetch(`${PAYMENTS_URL}/status/${lawFirmCode}?year=${year}&month=${month}`, { headers: getHeaders() });
-        if (!response.ok) throw new Error('Failed to fetch payment status.');
+        if (!response.ok) throw new Error('No payment status found.');
         return (await response.json()).data;
     },
 
@@ -59,7 +59,7 @@ getAllLawFirms: async (page: number = 0, size: number = 10): Promise<any> => {
         const response = await fetch(`${SUPER_ADMIN_URL}/getAllLawFirms?page=${page}&size=${size}`, { 
             headers: getHeaders() 
         });
-        if (!response.ok) throw new Error('Failed to fetch law firms directory.');
+        if (!response.ok) throw new Error('No law firms directory.');
         
         return await response.json();
     },
@@ -79,7 +79,7 @@ getInactiveSubscriptions: async (page: number = 0, size: number = 10): Promise<a
         const response = await fetch(`${SUPER_ADMIN_URL}/getInactiveSubscriptions?page=${page}&size=${size}`, { 
             headers: getHeaders() 
         });
-        if (!response.ok) throw new Error('Failed to fetch inactive subscriptions.');
+        if (!response.ok) throw new Error('No inactive subscriptions found.');
         return await response.json();
     },
 };
