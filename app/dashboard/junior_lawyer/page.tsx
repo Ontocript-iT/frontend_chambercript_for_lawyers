@@ -41,7 +41,7 @@ export default function JuniorLawyerDashboard() {
                     setFutureCasesList(result.data);
                 }
             } catch (err) {
-                console.error("Failed to fetch future cases:", err);
+                console.error("No future cases found:", err);
             }
         };
 

@@ -35,7 +35,7 @@ export const hearingService = {
         
         if (!response.ok) {
             const err = await response.json().catch(() => null);
-            throw new Error(err?.message || 'Failed to fetch hearings.');
+            throw new Error(err?.message || 'No hearings found.');
         }
         const jsonResponse = await response.json();
         return jsonResponse.data;

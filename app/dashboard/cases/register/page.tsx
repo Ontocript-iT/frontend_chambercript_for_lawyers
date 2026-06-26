@@ -48,9 +48,27 @@ export default function CaseOnboardingWizard() {
         }
     }, []);
 
-    // --- Form Interceptors (Opens Preview) ---
     const handleClientFormSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Validation Regex Patterns
+        const nicRegex = /^([0-9]{9}[vVxX]|[0-9]{12})$/;
+        const phoneRegex = /^(?:\+94|0)?7\d{8}$/; 
+
+        // Validate NIC
+        if (!nicRegex.test(clientForm.nic.trim())) {
+            setError("Invalid NIC format. Please enter a valid Sri Lankan NIC (e.g., 123456789V or 199012345678).");
+            return;
+        }
+
+        // Validate Phone
+        if (!phoneRegex.test(clientForm.phone.trim())) {
+            setError("Invalid mobile number format. Please enter a valid Sri Lankan number (e.g., 0771234567 or +94771234567).");
+            return;
+        }
+
+        setError('');
+
         setPreviewStep(1);
         setShowPreview(true);
     };

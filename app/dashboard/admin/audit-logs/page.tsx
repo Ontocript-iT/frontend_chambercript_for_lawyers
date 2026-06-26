@@ -48,7 +48,7 @@ export default function AuditLogsPage() {
                 setTotalItems(result.totalItems || 0);
 
             } catch (err: any) {
-                setError(err.message || 'Failed to fetch audit logs');
+                setError(err.message || 'No audit logs found');
                 setLogs([]);
             } finally {
                 setIsLoading(false);
