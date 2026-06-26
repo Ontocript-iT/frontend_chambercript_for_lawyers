@@ -40,7 +40,7 @@ function VerifyEmailContent() {
           
           // Wait 3 seconds, then redirect to the login page
           setTimeout(() => {
-            router.push('/login');
+            router.push('/');
           }, 3000);
           
         } else {
