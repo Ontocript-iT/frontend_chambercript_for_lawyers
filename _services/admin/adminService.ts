@@ -21,7 +21,7 @@ export const adminService = {
         throw new Error(
             errorData?.error || 
             errorData?.message || 
-            'Failed to register employee.'
+            'Failed to register staff.'
         );
     }
 
@@ -41,7 +41,7 @@ export const adminService = {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => null);
-            throw new Error(errorData?.message || 'Failed to fetch employees.');
+            throw new Error(errorData?.message || 'No Staff found.');
         }
 
         const jsonResponse = await response.json();
@@ -82,7 +82,7 @@ export const adminService = {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => null);
-            throw new Error(errorData?.message || 'Failed to fetch audit logs.');
+            throw new Error(errorData?.message || 'No audit logs.');
         }
 
         // Return the full response object so the component gets .data and .totalItems
@@ -99,7 +99,7 @@ export const adminService = {
             }
         });
         
-        if (!response.ok) throw new Error('Failed to fetch employees.');
+        if (!response.ok) throw new Error('No Staff found.');
         const jsonResponse = await response.json();
         return jsonResponse.data;
     },
@@ -116,7 +116,7 @@ getFutureCases: async (page: number = 0, size: number = 10): Promise<any> => {
 
         if (!response.ok) {
             const err = await response.json().catch(() => null);
-            throw new Error(err?.message || 'Failed to fetch future cases.');
+            throw new Error(err?.message || 'No future cases found.');
         }
 
         return await response.json(); 

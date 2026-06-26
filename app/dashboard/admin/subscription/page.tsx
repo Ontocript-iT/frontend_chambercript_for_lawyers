@@ -83,7 +83,7 @@ export default function SubscriptionPage() {
                 setSmsQuota(null);
             }
         } catch (err: any) {
-            setError(err.message || 'Failed to fetch subscription data.');
+            setError(err.message || 'No subscription data.');
         } finally {
             setIsLoading(false);
         }
@@ -97,7 +97,7 @@ export default function SubscriptionPage() {
                 setRemainingSms(response.data);
             }
         } catch (err) {
-            console.error('Failed to fetch remaining SMS count:', err);
+            console.error('No remaining SMS found:', err);
         }
     };
 

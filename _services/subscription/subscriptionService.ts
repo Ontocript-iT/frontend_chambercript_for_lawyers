@@ -89,7 +89,7 @@ export const subscriptionService = {
 
         if (!response.ok) {
             const errData = await response.json().catch(() => null);
-            throw new Error(errData?.message || 'Failed to fetch remaining SMS count.');
+            throw new Error(errData?.message || 'No remaining SMS count found.');
         }
 
         return response.json();

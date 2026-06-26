@@ -35,7 +35,7 @@ export const folderService = {
             method: 'GET',
             headers: getHeaders()
         });
-        if (!response.ok) throw new Error('Failed to fetch client folders.');
+        if (!response.ok) throw new Error('No client folders found.');
         const data = await response.json();
         return data.folders; 
     },

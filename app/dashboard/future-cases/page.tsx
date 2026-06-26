@@ -47,7 +47,7 @@ export default function FutureCasesPage() {
                     setTotalItems(result.totalItems ?? result.caseCount ?? 0);
                 }
             } catch (err) {
-                console.error("Failed to fetch future cases:", err);
+                console.error("No future cases found:", err);
             } finally {
                 setIsLoading(false);
             }

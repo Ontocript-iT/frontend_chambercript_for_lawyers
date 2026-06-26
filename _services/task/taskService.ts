@@ -27,7 +27,7 @@ export const taskService = {
             method: 'GET',
             headers: getHeaders()
         });
-        if (!response.ok) throw new Error('Failed to fetch your tasks.');
+        if (!response.ok) throw new Error('No tasks found.');
         const json = await response.json();
         return json.data || [];
     },
@@ -37,7 +37,7 @@ export const taskService = {
             method: 'GET',
             headers: getHeaders()
         });
-        if (!response.ok) throw new Error('Failed to fetch delegated tasks.');
+        if (!response.ok) throw new Error('No delegated tasks found.');
         const json = await response.json();
         return json.data || [];
     },

@@ -70,7 +70,7 @@ export const caseWorkspaceService = {
             }
         });
         
-        if (!response.ok) throw new Error('Failed to fetch case details.');
+        if (!response.ok) throw new Error('No case details found.');
         const json = await response.json();
         return json.data;
     },
@@ -101,7 +101,7 @@ export const caseWorkspaceService = {
                 ...getHeaders()
             }
         });
-        if (!response.ok) throw new Error('Failed to fetch case types');
+        if (!response.ok) throw new Error('No case types found.');
         return response.json();
     },
 
@@ -113,7 +113,7 @@ export const caseWorkspaceService = {
                 ...getHeaders()
             }
         });
-        if (!response.ok) throw new Error('Failed to fetch courts');
+        if (!response.ok) throw new Error('No courts found.');
         return response.json();
     },
 // Fetch cases by status with pagination
@@ -125,7 +125,7 @@ export const caseWorkspaceService = {
                 ...getHeaders() 
             }
         });
-        if (!response.ok) throw new Error(`Failed to fetch ${status} cases`);
+        if (!response.ok) throw new Error(`No ${status} cases found`);
         return response.json();
     },
 
